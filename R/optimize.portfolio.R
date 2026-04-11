@@ -111,7 +111,6 @@ optimize.portfolio_v1 <- function(R,
     DEcargs <- names(DEcformals)
     if (is.list(dotargs)) {
       pm <- pmatch(names(dotargs), DEcargs, nomatch = 0L)
-      names(dotargs[pm > 0L]) <- DEcargs[pm]
       DEcformals$NP <- NP
       DEcformals$itermax <- itermax
       DEcformals[pm] <- dotargs[pm > 0L]
@@ -366,7 +365,6 @@ optimize.portfolio_v1 <- function(R,
 
     if (is.list(dotargs)) {
       pm <- pmatch(names(dotargs), PSOcargs, nomatch = 0L)
-      names(dotargs[pm > 0L]) <- PSOcargs[pm]
       controlPSO$maxit <- maxit
       controlPSO[pm] <- dotargs[pm > 0L]
       if (!hasArg(reltol)) controlPSO$reltol <- .0001 # 1/100 of 1% change in objective is insignificant enough to restart a swarm
@@ -436,7 +434,6 @@ optimize.portfolio_v1 <- function(R,
 
     if (is.list(dotargs)) {
       pm <- pmatch(names(dotargs), GenSAcargs, nomatch = 0L)
-      names(dotargs[pm > 0L]) <- GenSAcargs[pm]
       controlGenSA$maxit <- maxit
       controlGenSA[pm] <- dotargs[pm > 0L]
       if (hasArg(trace) && try(trace == TRUE, silent = TRUE)) controlGenSA$verbose <- TRUE
@@ -904,7 +901,6 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
     DEcargs <- names(DEcformals)
     if (is.list(dotargs)) {
       pm <- pmatch(names(dotargs), DEcargs, nomatch = 0L)
-      names(dotargs[pm > 0L]) <- DEcargs[pm]
       DEcformals$NP <- NP
       DEcformals$itermax <- itermax
       DEcformals[pm] <- dotargs[pm > 0L]
@@ -1304,7 +1300,6 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
 
     if (is.list(dotargs)) {
       pm <- pmatch(names(dotargs), PSOcargs, nomatch = 0L)
-      names(dotargs[pm > 0L]) <- PSOcargs[pm]
       controlPSO$maxit <- maxit
       controlPSO[pm] <- dotargs[pm > 0L]
       if (!hasArg(reltol)) controlPSO$reltol <- .000001 # 1/1000 of 1% change in objective is significant
@@ -1362,7 +1357,6 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
 
     if (is.list(dotargs)) {
       pm <- pmatch(names(dotargs), GenSAcargs, nomatch = 0L)
-      names(dotargs[pm > 0L]) <- GenSAcargs[pm]
       controlGenSA$maxit <- maxit
       controlGenSA[pm] <- dotargs[pm > 0L]
       if (hasArg(trace) && try(trace == TRUE, silent = TRUE)) controlGenSA$verbose <- TRUE
