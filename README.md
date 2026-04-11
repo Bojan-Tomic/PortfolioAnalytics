@@ -1,8 +1,11 @@
 README
 ================
 
+<!-- badges: start -->
+[![Downloads from the RStudio CRAN mirror](https://cranlogs.r-pkg.org/badges/PortfolioAnalytics)](https://cran.r-project.org/package=PortfolioAnalytics)
 [![R-CMD-check](https://github.com/braverock/PortfolioAnalytics/workflows/R-CMD-check/badge.svg)](https://github.com/braverock/PortfolioAnalytics/actions)
-[![codecov](https://app.codecov.io/gh/braverock/PortfolioAnalytics/branch/master/graph/badge.svg)](https://app.codecov.io/gh/braverock/PortfolioAnalytics)
+[![Codecov test coverage](https://codecov.io/gh/braverock/PortfolioAnalytics/graph/badge.svg)](https://app.codecov.io/gh/braverock/PortfolioAnalytics)
+<!-- badges: end -->
 
 This V2.1 version of PortfolioAnalytics is an update to the substantial
 V2.0 version that was released on 2024-07-03. We first describe the V2.0
