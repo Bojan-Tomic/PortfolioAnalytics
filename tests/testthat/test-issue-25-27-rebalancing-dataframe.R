@@ -233,3 +233,63 @@ test_that("#27 v2: training_period already defaults to rolling_window correctly"
     label = "v2 training_period=NULL with rolling_window=24 yields same periods as training_period=24"
   )
 })
+
+# ---------------------------------------------------------------------------
+# Expanded coverage
+# ---------------------------------------------------------------------------
+
+test_that("#25 v2: matrix input coerced to xts and rebalancing works", {
+  # Plain numeric matrix (row-named with dates) should be accepted.
+  R_mat <- coredata(R_xts)
+  rownames(R_mat) <- format(index(R_xts))
+
+  expect_no_error(
+    res <- optimize.portfolio.rebalancing(
+      R               = R_mat,
+      portfolio       = portf_v2,
+      optimize_method = "ROI",
+      rebalance_on    = "quarters",
+      training_period = 36,
+      rolling_window  = 36
+    )
+  )
+  expect_s3_class(res, "optimize.portfolio.rebalancing")
+  expect_gte(length(res$opt_rebalancing), 1L)
+})
+
+test_that("#25 v2: extractWeights on xts result gives sums ≈ 1", {
+  res <- optimize.portfolio.rebalancing(
+    R               = R_xts,
+    portfolio       = portf_v2,
+    optimize_method = "ROI",
+    rebalance_on    = "quarters",
+    training_period = 36,
+    rolling_window  = 36
+  )
+  w <- extractWeights(res)
+  expect_true(all(abs(rowSums(w) - 1) < 1e-4))
+  expect_equal(ncol(w), length(nms))
+})
+
+test_that("#27 v1: when rolling_window and training_period both given, training_period wins", {
+  # training_period=48 > rolling_window=24 → should give fewer periods than when
+  # training_period=24
+  res_tp48 <- optimize.portfolio.rebalancing_v1(
+    R               = R_xts,
+    constraints     = v1_constraints,
+    optimize_method = "ROI",
+    rebalance_on    = "quarters",
+    training_period = 48,
+    rolling_window  = 24
+  )
+  res_tp24 <- optimize.portfolio.rebalancing_v1(
+    R               = R_xts,
+    constraints     = v1_constraints,
+    optimize_method = "ROI",
+    rebalance_on    = "quarters",
+    training_period = 24,
+    rolling_window  = 24
+  )
+  expect_lt(length(res_tp48), length(res_tp24),
+            label = "larger training_period yields fewer rebalancing periods")
+})

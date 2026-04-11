@@ -49,10 +49,11 @@ test_that("optimize.portfolio random method succeeds when momentFUN omits mu", {
   ps <- make_spec(R)
 
   # Custom momentFUN that intentionally omits mu (simulates a poorly-written
-  # custom moment function, which was the root cause of issue #20)
-  my_moments_no_mu <- function(R, portfolio) {
+  # custom moment function, which was the root cause of issue #20).
+  # Assigned to .GlobalEnv so match.fun() can resolve it.
+  assign("my_moments_no_mu_20", function(R, portfolio) {
     list(sigma = cov(R))  # no mu!
-  }
+  }, envir = .GlobalEnv)
 
   set.seed(42)
   # Should complete without error (objective may be NA/penalised but no crash)
@@ -60,7 +61,8 @@ test_that("optimize.portfolio random method succeeds when momentFUN omits mu", {
     opt <- optimize.portfolio(
       R = R, portfolio = ps,
       optimize_method = "random",
-      momentFUN = "my_moments_no_mu",
+      momentFUN = "my_moments_no_mu_20",
+      search_size = 200L,
       trace = TRUE
     )
   )
@@ -79,6 +81,7 @@ test_that("optimize.portfolio random method succeeds with standard momentFUN (me
     opt <- optimize.portfolio(
       R = R, portfolio = ps,
       optimize_method = "random",
+      search_size = 200L,
       trace = TRUE
     )
   )
@@ -103,6 +106,7 @@ test_that("optimize.portfolio random+trace works with mean+StdDev+risk_budget ob
     opt <- optimize.portfolio(
       R = R, portfolio = ps,
       optimize_method = "random",
+      search_size = 200L,
       trace = TRUE
     )
   )

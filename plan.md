@@ -1,53 +1,29 @@
-# PortfolioAnalytics Comprehensive Test Suite Plan
+# PortfolioAnalytics Issue Resolution Plan
 
 ## Overview
 
-This document is the authoritative plan for building a comprehensive test suite
-for the PortfolioAnalytics R package. It is written for use by human developers
-or AI agents executing the work. All decisions, conventions, file mappings,
-migration rules, and new test scope are specified here.
+Address open GitHub issues in PortfolioAnalytics.
 
-**Goal:** Achieve >80% code coverage as measured by the `covr` package, with
-tests that run during `R CMD check` and in GitHub Actions CI, but are skipped
-on CRAN.
+- Use `gh` CLI to interact with GitHub
+- Track progress by editing this file
+- Create a feature branch per issue
+- Write a failing test *before* making code changes
+- Enhance test coverage for poorly covered areas
+- Squash-merge each feature branch with a commit referencing the issue
 
-**Parallel test execution:**
-`Config/testthat/parallel: true` is set in DESCRIPTION.  The number of workers
-is controlled by `TESTTHAT_CPUS`.  `tests/run-all.R` and `analyze_coverage.R`
-both set `TESTTHAT_CPUS = max(2L, round(parallel::detectCores() / 2))` **only
-when `NOT_CRAN=true`**.  On CRAN `TESTTHAT_CPUS` is left unset (defaults to 1),
-keeping execution sequential and within CRAN's 2-core policy.  The GH Actions
-coverage workflow pins `TESTTHAT_CPUS: 2` (matching the 2-vCPU free tier).
-
-**Branch:** `feature/testing-improvements`
-
-**Current state (Phase 8 complete, Phase 9 planning):**
-- Coverage: **66.16%** (measured locally after Phase 8 via `covr::package_coverage()`)
-- All tests: PASS 1,911, FAIL 0, SKIP 13 (all graceful), WARN 16 (pre-existing)
-- Branch: `feature/testing-improvements`
-- **Next action:** Phase 9 — targeted push from 66% → 80% (see §14)
-
-Coverage math (from `coverage_session9.rds`):
-- Total expressions: 7,711
-- Currently covered: 5,366 (69.6% by expression count; covr reports 66.16% using its own weighting)
-- Need for 80%: **803 more expressions** (by covr's measure)
-- If all per-file targets in §14 are hit: projected **81.9%**
+**Current state:** Group "Already Fixed" complete — #1-6, #30, #31, #36 closed with regression tests (commit 877895f). Working on Group A active bugs.
 
 ---
 
 ## Table of Contents
 
 1. [Conventions and Rules](#1-conventions-and-rules)
-2. [Infrastructure Setup](#2-infrastructure-setup)
-3. [Phase 1 — Fix Existing Migrated File](#3-phase-1--fix-existing-migrated-file)
-4. [Phase 2 — Migrate Legacy Tests](#4-phase-2--migrate-legacy-tests)
-5. [Phase 3 — Man Page Examples Tests](#5-phase-3--man-page-examples-tests)
-6. [Phase 4 — New Tests for Coverage Gaps](#6-phase-4--new-tests-for-coverage-gaps)
-7. [Phase 5 — GitHub Actions Updates](#7-phase-5--github-actions-updates)
-8. [Deprecated API Conversion Reference](#8-deprecated-api-conversion-reference)
-9. [Known Bugs to Fix During Migration](#9-known-bugs-to-fix-during-migration)
-10. [File Inventory and Status Tracking](#10-file-inventory-and-status-tracking)
-11. [Coverage Targets by Source File](#11-coverage-targets-by-source-file)
+2. [Issue Triage Summary](#2-issue-triage-summary)
+3. [Bugs — Already Fixed (close with tests)](#3-bugs--already-fixed-close-with-tests)
+4. [Bugs — Active](#4-bugs--active)
+5. [Feature Requests](#5-feature-requests)
+6. [Support Request Responses](#6-support-request-responses)
+7. [Out of Scope (PerformanceAnalytics)](#7-out-of-scope-performanceanalytics)
 
 ---
 
@@ -57,187 +33,290 @@ Coverage math (from `coverage_session9.rds`):
 
 - All test files live in `tests/testthat/`
 - File names use lowercase kebab-case: `test-{topic}.R`
-- One test file per logical topic area (not one per demo script)
-- The `inst/tests/` directory is the **legacy location**; files there are NOT
-  discovered by modern `R CMD check`. After migration, `inst/tests/` should be
-  deleted entirely.
+- One test file per logical topic area
 
 ### 1.2 Modern testthat Syntax (testthat >= 3.0)
 
-Use ONLY modern `expect_*()` functions. Never use `expect_that()` or its helper
-matchers (`equals()`, `is_true()`, `is_false()`, `is_a()`, etc.). See the full
-conversion table in Section 7.
-
-Do NOT use `context()`. It is deprecated in testthat 3.x. The file name now
-serves as the context. Existing `context()` calls must be removed on migration.
+Use ONLY modern `expect_*()` functions. No `expect_that()`, no `context()`.
 
 ### 1.3 CRAN and Dependency Guards
 
 Every test file that performs optimization or requires a Suggested package MUST
-have guards at the top of the file (not inside individual `test_that()` blocks):
-
-```r
-# At the top of every test file (after library calls):
-skip_on_cran()
-
-# Before any block that uses a Suggested package:
-skip_if_not_installed("DEoptim")
-skip_if_not_installed("ROI")
-skip_if_not_installed("ROI.plugin.glpk")
-skip_if_not_installed("ROI.plugin.quadprog")
-skip_if_not_installed("quadprog")
-skip_if_not_installed("CVXR")
-skip_if_not_installed("corpcor")
-skip_if_not_installed("Rglpk")
-skip_if_not_installed("nloptr")
-skip_if_not_installed("osqp")
-```
-
-Place `skip_if_not_installed()` inside a `test_that()` block or at the top of
-the file, whichever is more appropriate. For files that require a single
-package throughout, put it at the file top. For files with mixed requirements,
-put guards inside the relevant `test_that()` blocks.
+have `skip_on_cran()` and appropriate `skip_if_not_installed()` guards.
 
 ### 1.4 Stochastic Tests
 
-Tests that use DEoptim, random portfolios, PSO, or GenSA produce non-deterministic
-results. These tests should check:
-- That the result object has the correct class (`expect_s3_class()`)
-- That weights are numeric and sum approximately to 1 (`expect_true(is.numeric(...))`)
-- That box constraints are not violated
-- That objective measures are numeric (not NA/NaN/NULL)
-
-Do NOT check exact numerical values for stochastic optimizers. Use `set.seed()`
-when calling `random_portfolios()` directly to make portfolio generation
-reproducible, but not when the randomness is inside `optimize.portfolio()` with
-`optimize_method = "random"` or `"DEoptim"`.
+Do NOT check exact numerical values for stochastic optimizers. Check structure,
+classes, constraint satisfaction, and that objectives are numeric.
 
 ### 1.5 ROI / Deterministic Tests
 
-Tests using `optimize_method = "ROI"` (backed by quadprog, glpk, symphony) are
-deterministic and SHOULD check exact numerical values with `tolerance = 1e-6`.
+Tests using `optimize_method = "ROI"` are deterministic and SHOULD check exact
+numerical values with `tolerance = 1e-6`.
 
-### 1.6 Test Structure
+### 1.6 Test-First Workflow Per Issue
 
-Prefer grouping related expectations into one `test_that()` block rather than
-one expectation per block. For example, all box constraint bounds checks for a
-single result object belong in one block.
+1. Create feature branch: `fix/issue-NN-short-description`
+2. Write test(s) that reproduce the bug (expect failure)
+3. Fix the code
+4. Confirm tests pass
+5. Add additional coverage tests if area is poorly covered
+6. Squash-merge to master with message referencing `#NN`
 
-Use `describe()` and `it()` only if there is a genuine hierarchy to express.
-For most cases, `test_that()` is sufficient.
+### 1.7 Git Commit Messages
 
-### 1.7 Data Fixtures
-
-Most tests use the built-in `edhec` dataset from PerformanceAnalytics.
-Define a small shared fixture at the top of each file:
-
-```r
-data(edhec)
-R <- edhec[, 1:5]   # Use first 5 columns unless the test requires more
-```
-
-For tests that source demo scripts (see Section 4.2), this is handled by the
-demo script itself.
-
-### 1.8 Demo Scripts — Refactor to Inline Setup
-
-Demo scripts are broad, exploratory scripts designed to illustrate many features
-at once. They are **not** tests and should not be sourced inside test files,
-even though the legacy `inst/tests/` files did so.
-
-**The correct approach for Phase 2 migrations:**
-
-Do NOT keep `source(system.file("demo/...", package = "PortfolioAnalytics"))`.
-Instead, read the relevant demo to understand what optimization problem it sets
-up, then reproduce that setup **inline** in the test file using the same data,
-constraints, objectives, and solver. This makes tests:
-- Faster (only runs what's needed for the test)
-- More explicit (the reader understands the test without reading a separate file)
-- More robust (not sensitive to changes in demo scripts)
-- Better at isolating failures (a failing test pinpoints one problem)
-
-When migrating, use the demo as a **reference document**, not as executable
-code in the test. Copy the relevant `portfolio.spec`, `add.constraint`,
-`add.objective`, and `optimize.portfolio` calls into the test file directly,
-trimming anything not needed by the assertions.
-
-### 1.9 Man Page Examples — Test All, Including `\dontrun{}`
-
-All 21 Rd files with `\examples{}` blocks must be covered by
-`tests/testthat/test-examples.R`. This includes the one `\dontrun{}` block in
-`optimize.portfolio.rebalancing.Rd` (guard it with `skip_on_cran()` and
-`skip_if_not_installed("ROI.plugin.quadprog")`).
-
-The examples test file should:
-- Execute each example block from the Rd file verbatim (or near-verbatim)
-- Wrap each in a `test_that()` block with a description naming the function
-- Add the minimum assertion needed to confirm the example ran correctly:
-  - For portfolio spec constructors: `expect_s3_class(result, "portfolio")`
-  - For constraint constructors: `expect_s3_class(result, "portfolio")`
-  - For numeric outputs: `expect_true(is.numeric(result))`
-  - For optimization results: `expect_s3_class(result, "optimize.portfolio.rebalancing")`
-- NOT attempt to verify exact numerical values (examples are documentation,
-  not regression tests)
-
-See Section 5 for the full file specification.
+Short, imperative subject line (~50 chars). Body only when useful.
+ALWAYS Reference the GitHub issue number. Use "Fixes #NN" to auto-close, or "Refs #NN" if issue remains open.
 
 ---
 
-## 2. Infrastructure Setup
+## 2. Issue Triage Summary
 
-✅ **Complete.** All tasks done before session 2. Summary:
-- `tests/run-all.R` fixed to use `test_check()`
-- `Config/testthat/edition: 3` added to `DESCRIPTION`
-- `tests/testthat/helper-portfolioanalytics.R` created with shared fixtures
-- `.codecov.yml` added (80% project target / 70% patch target)
-- `covr` added to `Suggests` in `DESCRIPTION`
+| # | Title | Status | Category |
+|---|-------|--------|----------|
+| 1 | multi layer spec + rebalancing | Already fixed | Close w/ tests |
+| 2 | asset names not set in regime portfolio | Already fixed | Close w/ tests |
+| 3 | geometric chaining with negative weights | Already fixed | Close w/ tests |
+| 4 | New ROI version causes errors | Already fixed | Close w/ tests |
+| 5 | GenSA temperature arg name | Already fixed | Close w/ tests |
+| 6 | GenSA ignores rp | Already fixed | Close w/ tests |
+| 7 | DEoptim parallelType via `...` | Active bug | Bug |
+| 10 | Custom moments vignette / sigma.robust | Active bug | Bug |
+| 12 | random_portfolios fails w/o box constraints | Active bug | Bug |
+| 13 | Errors in several demos (old constraint API) | Active bug | Bug |
+| 14 | multiplier=0 (ROI ignores multiplier) | Active bug (partial) | Bug |
+| 15 | Return.clean boudt single column | PerformanceAnalytics (fixed) | Out of scope |
+| 20 | name="mean" crossprod error | Active bug | Bug |
+| 22 | Parallel rebalancing + custom momentFUN | Active bug | Bug |
+| 24 | itermax variable class issue | Active bug | Bug |
+| 25 | data.frame causes rebalancing crash | Active bug | Bug |
+| 26 | Max Sharpe Ratio xmin/xmax error | Active bug | Bug |
+| 27 | training_period NULL + rolling_window (v1) | Active bug (v1 only) | Bug |
+| 29 | Fixed income portfolio guidance | Support question | Defer |
+| 30 | Rebalancing weights not summing to 1 | Not reproducible | Close |
+| 31 | ROI fails for specific edhec period | Not reproducible | Close |
+| 36 | CVXR optimize_method length-2 vector | Already fixed | Close w/ tests |
+| 41 | position_limit + random_portfolios sample | Active bug | Bug |
+| 42 | Time-varying factor exposure question | Support question | Defer |
+| 43 | [FR] Parallelization level control | Feature request | FR |
+| 44 | CVXR division by near-zero sum | Active bug | Bug |
+| 45 | [FR] Return solver failure info | Feature request | FR |
+| 47 | Max ES Ratio + Sortino cov matrix | Support question | Defer |
+| 48 | DownsideDeviation time-varying MAR | PerformanceAnalytics (partial) | Out of scope |
+| 49 | Rglpk matrix dimension mismatch | Active bug | Bug |
 
 ---
 
-## Historic Phases (1 - 15)
-Phases 1 through 15 have been completed successfully. This included migrating legacy inst/tests, generating testthat assertions, covering visualization modules, handling alternative MILP solvers (Rglpk), and tracking missing generic S3 coverage.
-Coverage rose from **25.10% to 80.5%** during these phases.
+## 3. Bugs — Already Fixed (close with tests)
 
-## 16. Post-Suite Bug Fixes (Deferred)
-During the test coverage push, several bugs were discovered but deferred so we could focus strictly on coverage. They should be fixed after the test suite hits its target.
+Verify fix, add regression tests, close issue.
 
-*   **#49 - Rglpk solver matrix dimension mismatch in Mean-ES return target constraint:**
-    When using `optimize.portfolio(..., optimize_method = "Rglpk")` with a portfolio that has both a `mean` return objective and an `ES/ETL` risk objective (Mean-ES optimization), adding a return target constraint causes a matrix dimension mismatch that corrupts the `Rglpk.mat` constraint matrix, leading the solver to fail. The `rbind` adds rows of incorrect length instead of a single target-return constraint row.
-    *Location: `R/optimize.portfolio.R`, lines ~1746-1752.*
+### 3.1 #4 — ROI `as.constraint` breakage
+- **Status:** Fixed by ROI interface rewrite (uses `ROI::OP()` directly now)
+- **Action:** Confirm existing tests cover this; close issue with comment
+- [ ] Done
 
-## 17. Phase 12 — Core Optimization Deep Dive (Hitting Full Coverage)
+### 3.2 #5 — GenSA `temp` vs `temperature`
+- **Status:** Fixed — param correctly named `temperature` at lines 430, 1351
+- **Action:** Add regression test; close issue
+- [ ] Done
 
-### Overview
-After successfully reaching the 80% mark package-wide in Phase 11, this phase targets near-100% test coverage for the 6 core mathematical optimization and architecture files.
+### 3.3 #6 — GenSA ignores `rp`
+- **Status:** Fixed — `if (!is.null(rp)) par <- rp[, 1]` at lines 448, 1369
+- **Action:** Add regression test; close issue
+- [ ] Done
 
-### 1. `optimize.portfolio.R` (Currently 71.9%)
-- **Lines ~1750-2300**: MILP and Mean-ES blocks inside the `Rglpk` optimizer. (Note: These were not completely covered due to the `rbind` matrix dimension mismatch bug in the `target` return constraint branch).
-- **Lines ~2400-2800**: Uncovered branches inside `osqp`, `mco`, and error-handling conditions.
-- **Lines ~3330-3470**: `optimize.portfolio.rebalancing` error blocks, legacy parameter transitions, `turnover` constraints initializing from previous optimal weights.
-- **Action**:
-  - Add targeted unit tests inside `test-optimize-portfolio-advanced.R` for error/message branches.
-  - Skip the native `Rglpk` mean-ES bug block or submit isolated test cases if feasible.
-  - Add tests simulating missing solvers to hit `stop()` blocks.
+### 3.4 #1 — multi layer spec + rebalancing
+- **Status:** Fixed — correct portfolio object passed at lines 747, 3367
+- **Action:** Add regression test if feasible; close issue
+- [ ] Done
 
-### 2. `constrained_objective.R` (Currently 77.5%)
-- **Missing lines**: Predominantly branches where penalties are evaluated for constraints (turnover, diversification, position limit, leverage).
-- **Action**: Augment `test-constrained-objective.R` to test the internal function `constrained_objective()` explicitly with varying `w` (weight vectors) that purposefully violate `turnover`, `diversification`, and `leverage` constraints.
+### 3.5 #2 — asset names in regime portfolio
+- **Status:** Fixed — `names(assets)` set at `R/portfolio.R:165`
+- **Action:** Add regression test; close issue
+- [ ] Done
 
-### 3. `moment.functions.R` (Currently 79.1%)
-- **Missing lines**:
-  - Error branches inside `custom.covRob` missing robust base packages.
-  - Branches inside `portfolio.moments.boudt` handling robust arguments.
-  - Fallbacks to `sample` estimators when parameters fail.
-- **Action**: Augment `test-moment-functions-extended.R`.
+### 3.6 #3 — geometric chaining with negative weights
+- **Status:** Fixed — detection at `R/mult.layer.portfolio.R:158`
+- **Action:** Add regression test; close issue
+- [ ] Done
 
-### 4. `extractstats.R` (Currently 79.1%)
-- **Missing lines**: Extraction routines for `GenSA`, `pso`, and `mco` when run with specific flags (like `trace=FALSE` returning NULL handling).
-- **Action**: Expand `test-extract-functions.R` to cover stochastic solver results (from helper) specifically calling `extractStats`.
+### 3.7 #36 — CVXR length-2 optimize_method
+- **Status:** Fixed — length check at lines 755, 3415
+- **Action:** Add regression test; close issue
+- [ ] Done
 
-### 5. `constraints.R` & `objective.R` (Currently 92.1% & 82.2%)
-- **Missing lines**:
-  - Vector vs. scalar expansion mismatch handling in `add.constraint` and `add.objective`.
-  - `update.objective` edge cases.
-  - `insert_objectives` failing checks.
-- **Action**: Augment `test-constraints.R` and `test-objectives.R` to cover malformed inputs (e.g. inserting non-objective objects).
+### 3.8 #30 — Rebalancing weights not summing to 1
+- **Status:** Not reproducible with current code
+- **Action:** Close with comment explaining ROI enforces constraints
+- [ ] Done
 
+### 3.9 #31 — ROI fails for specific edhec period
+- **Status:** Not reproducible with current code
+- **Action:** Close with comment; add test for that date range
+- [ ] Done
+
+---
+
+## 4. Bugs — Active
+
+Grouped by area of the codebase for efficient context sharing.
+
+### Group A: optimize.portfolio.R core dispatch
+
+#### 4.1 #7 — DEoptim `parallelType` from `...` not propagated
+- **File:** `R/optimize.portfolio.R:113-117, 901-905`
+- **Root cause:** `names(dotargs[pm > 0L])` modifies a copy, not `dotargs`
+- **Fix:** Use `names(dotargs)[pm > 0L] <- DEcargs[pm]` or rewrite pmatch block
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.2 #24 — `itermax` variable class from `match.call()`
+- **File:** `R/optimize.portfolio.R:95-96, 883-884`
+- **Root cause:** `match.call()$itermax` returns unevaluated expression
+- **Fix:** Use `eval()` or extract from `list(...)$itermax`
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.3 #25 — `data.frame` input crashes rebalancing
+- **File:** `R/optimize.portfolio.R:3321+`
+- **Root cause:** No `checkData(R)` call in `optimize.portfolio.rebalancing`
+- **Fix:** Add `R <- checkData(R)` after early-return blocks
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.4 #27 — `training_period` NULL + `rolling_window` (v1 path)
+- **File:** `R/optimize.portfolio.R:3183`
+- **Root cause:** v1 unconditionally defaults training_period=36
+- **Fix:** Add the same check that v2 has at line 3435
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.5 #22 — Parallel rebalancing ignores custom `momentFUN`
+- **File:** `R/optimize.portfolio.R:3191,3198,3458,3467,3479,3486`
+- **Root cause:** `foreach` calls lack `.export` for custom functions
+- **Fix:** Detect custom functions in `...` and add to `.export`
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+### Group B: Objective / constraint calculation
+
+#### 4.6 #12 — `random_portfolios` fails without box constraints
+- **File:** `R/random_portfolios.R:243-245`, `R/constraint_fn_map.R:53-54`
+- **Root cause:** `-Inf`/`Inf` from missing box constraints → `seq()` error
+- **Fix:** Guard `generatesequence()` inputs; default to sensible min/max
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.7 #14 — `multiplier=0` ignored by ROI
+- **File:** ROI path in `R/optimize.portfolio.R` (documented limitation)
+- **Root cause:** ROI builds QP/LP directly, doesn't use multiplier
+- **Action:** May be "won't fix" — document better, or apply post-solve
+- [ ] Investigate feasibility
+- [ ] Decision + action
+- [ ] Done
+
+#### 4.8 #20 — `name="mean"` crossprod error with missing `mu`
+- **File:** `R/constrained_objective.R:572-576`, `R/objectiveFUN.R:68-71`
+- **Root cause:** `port.mean(weights, mu)` fails when `mu` is NULL
+- **Fix:** Guard for NULL mu; provide helpful error message
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.9 #41 — `position_limit` + `random_portfolios` sample method
+- **File:** `R/random_portfolios.R` sample path
+- **Root cause:** Seed portfolios violate position_limit, get eliminated
+- **Fix:** Generate position-limit-aware seed portfolios
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+### Group C: Solver-specific bugs
+
+#### 4.10 #26 — Max Sharpe Ratio `optimize()` xmin/xmax
+- **File:** `R/optFUN.R:1338-1365`
+- **Root cause:** No guard for `min_mean >= max_mean` before `optimize()`
+- **Fix:** Check and handle degenerate case
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.11 #44 — CVXR division by near-zero `sum(cvxr_wts)`
+- **File:** `R/optimize.portfolio.R:3091-3094`
+- **Root cause:** No guard before `cvxr_wts / sum(cvxr_wts)`
+- **Fix:** Check for near-zero sum; return error/warning
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.12 #49 — Rglpk matrix dimension mismatch
+- **File:** `R/optimize.portfolio.R:1622-1627, 1748-1754`
+- **Root cause:** Return target row has N cols, matrix has N+T+1 cols
+- **Fix:** Pad the return target row with zeros for auxiliary variables
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+### Group D: Demos / vignettes
+
+#### 4.13 #10 — Custom moments vignette unhelpful error
+- **File:** `R/moment.functions.R` (stopifnot/requireNamespace pattern)
+- **Root cause:** `stopifnot(requireNamespace(...))` gives "is not TRUE"
+- **Fix:** Replace with `if(!requireNamespace(...)) stop("package X required")`
+- [ ] Write failing test
+- [ ] Fix code
+- [ ] Verify
+
+#### 4.14 #13 — Demos use old `constraint()` API
+- **File:** `demo/backwards_compat.R`, `demo/constrained_optim.R`, etc.
+- **Root cause:** Demos call `constraint(assets=...)` but export is `constraint_v2(type=...)`
+- **Fix:** Update demos to use modern `portfolio.spec()` + `add.constraint()` API
+- [ ] Audit all demos
+- [ ] Fix each broken demo
+- [ ] Verify
+
+---
+
+## 5. Feature Requests
+
+### 5.1 #43 — Parallelization level control for rebalancing
+- User wants to control where parallelism is applied
+- Needs design discussion
+- [ ] Design
+- [ ] Implement
+- [ ] Done
+
+### 5.2 #45 — Return solver failure info from rebalancing
+- Silently swallowed errors should be captured/returned
+- [ ] Design
+- [ ] Implement
+- [ ] Done
+
+---
+
+## 6. Support Request Responses
+
+Defer until bugs are resolved. May answer with helpful comments.
+
+- **#29** — Fixed income portfolio guidance
+- **#42** — Time-varying factor exposure question
+- **#47** — Max ES Ratio + Sortino covariance matrix
+
+---
+
+## 7. Out of Scope (PerformanceAnalytics)
+
+### 7.1 #15 — `Return.clean` boudt single column
+- **Status:** Fixed in PerformanceAnalytics 2.0.9
+- **Action:** Close with comment pointing to PA fix
+
+### 7.2 #48 — `DownsideDeviation` / `SortinoRatio` time-varying MAR
+- **Status:** `DownsideDeviation` fixed; `SortinoRatio` still broken in PA
+- **Action:** Transfer issue to PerformanceAnalytics repo

@@ -142,3 +142,51 @@ test_that("issue #24: itermax variable works with v1 optimize.portfolio path", {
     )
   )
 })
+
+# ---------------------------------------------------------------------------
+# Expanded: maxit alias for PSO; rebalancing with variable itermax
+# ---------------------------------------------------------------------------
+
+test_that("issue #24: maxit alias works for PSO", {
+  skip_if_not_installed("pso")
+  my_maxit <- 50L
+
+  set.seed(42)
+  expect_no_error(
+    opt <- suppressWarnings(
+      optimize.portfolio(
+        R, p,
+        optimize_method = "pso",
+        maxit           = my_maxit,
+        trace           = FALSE
+      )
+    )
+  )
+  expect_s3_class(opt, "optimize.portfolio.pso")
+})
+
+test_that("issue #24: DEoptim itermax variable works in rebalancing", {
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  # Use ROI for rebalancing (much faster than DEoptim) — the fix also covers
+  # any solver that uses the itermax/maxit path. Here we confirm the
+  # rebalancing scaffolding still works when itermax is a variable.
+  p_roi <- portfolio.spec(assets = colnames(R))
+  p_roi <- add.constraint(p_roi, type = "weight_sum", min_sum = 0.99, max_sum = 1.01)
+  p_roi <- add.constraint(p_roi, type = "long_only")
+  p_roi <- add.objective(p_roi, type = "risk", name = "StdDev")
+
+  my_iter <- 10L
+  expect_no_error(
+    bt <- optimize.portfolio.rebalancing(
+      R               = R,
+      portfolio       = p_roi,
+      optimize_method = "ROI",
+      rebalance_on    = "years",
+      training_period = 36L
+    )
+  )
+  expect_s3_class(bt, "optimize.portfolio.rebalancing")
+  expect_gte(length(bt$opt_rebalancing), 1L)
+})

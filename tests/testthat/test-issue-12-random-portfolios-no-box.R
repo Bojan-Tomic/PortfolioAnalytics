@@ -103,3 +103,57 @@ test_that("#12 random_portfolios still works correctly with explicit box constra
   expect_true(all(rp >= 0.04))      # box lower bound (with some tolerance)
   expect_true(all(rp <= 0.61))      # box upper bound (with some tolerance)
 })
+
+# ---------------------------------------------------------------------------
+# Expanded coverage
+# ---------------------------------------------------------------------------
+
+test_that("#12 optimize.portfolio random method works without box constraint", {
+  pspec <- portfolio.spec(assets = colnames(R4))
+  pspec <- add.constraint(pspec, type = "full_investment")
+  pspec <- add.objective(pspec, type = "risk", name = "StdDev")
+
+  set.seed(42)
+  expect_no_error(
+    opt <- optimize.portfolio(R4, pspec, optimize_method = "random",
+                              search_size = 200L, trace = FALSE)
+  )
+  w <- extractWeights(opt)
+  expect_true(all(is.finite(w)))
+  expect_equal(sum(w), 1, tolerance = 0.02)
+})
+
+test_that("#12 random_portfolios rp_method='sample' works with 8-asset portfolio", {
+  R8 <- edhec[, 1:8]
+  pspec <- portfolio.spec(assets = colnames(R8))
+  pspec <- add.constraint(pspec, type = "full_investment")
+
+  set.seed(42)
+  expect_no_error(
+    rp <- random_portfolios(pspec, permutations = 100, rp_method = "sample")
+  )
+  expect_equal(ncol(rp), 8L)
+  expect_true(all(abs(rowSums(rp) - 1) < 0.02))
+})
+
+test_that("#12 random_portfolios long-short (weight_sum) works without explicit box", {
+  pspec <- portfolio.spec(assets = colnames(R4))
+  pspec <- add.constraint(pspec, type = "weight_sum", min_sum = -0.3, max_sum = 1.3)
+
+  set.seed(42)
+  expect_no_error(
+    rp <- random_portfolios(pspec, permutations = 100, rp_method = "sample")
+  )
+  expect_true(is.matrix(rp))
+  expect_equal(ncol(rp), ncol(R4))
+})
+
+test_that("#12 rp_method='simplex' produces portfolios with correct column count", {
+  pspec <- portfolio.spec(assets = colnames(R4))
+  pspec <- add.constraint(pspec, type = "full_investment")
+
+  set.seed(42)
+  rp <- random_portfolios(pspec, permutations = 50, rp_method = "simplex")
+  expect_equal(ncol(rp), ncol(R4))
+  expect_true(all(abs(rowSums(rp) - 1) < 0.02))
+})

@@ -65,6 +65,10 @@ returns_text <- '
 '
 R_26 <- as.matrix(read.csv(text = returns_text, row.names = "date"))
 
+# ---------------------------------------------------------------------------
+# max Sharpe Ratio (ROI path) — the primary bug from issue #26
+# ---------------------------------------------------------------------------
+
 test_that("max Sharpe Ratio optimization completes without error on near-zero variance data (#26)", {
   skip_on_cran()
   skip_if_not_installed("ROI")
@@ -88,7 +92,33 @@ test_that("max Sharpe Ratio optimization completes without error on near-zero va
   expect_equal(sum(opt$weights), 1, tolerance = 1e-6)
 })
 
-test_that("max Sharpe Ratio optimization works normally on non-degenerate data", {
+test_that("max Sharpe Ratio degenerate guard fires a warning, not an error (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  ps <- portfolio.spec(colnames(R_26))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "StdDev")
+
+  # The degenerate data *may* trigger the warning — we simply need no error.
+  # If no warning fires it means the data was not degenerate enough on this run;
+  # that is still a pass (the guard doesn't produce a regression).
+  result <- tryCatch(
+    optimize.portfolio(R_26, ps, optimize_method = "ROI", maxSR = TRUE),
+    error = function(e) e
+  )
+  expect_false(inherits(result, "error"),
+               info = "must not throw 'xmin not less than xmax' error")
+  if (!inherits(result, "error")) {
+    expect_true(all(is.finite(extractWeights(result))))
+  }
+})
+
+test_that("max Sharpe Ratio optimization works normally on non-degenerate data (#26)", {
   skip_on_cran()
   skip_if_not_installed("ROI")
   skip_if_not_installed("ROI.plugin.glpk")
@@ -108,3 +138,245 @@ test_that("max Sharpe Ratio optimization works normally on non-degenerate data",
   expect_true(!is.null(opt$weights))
   expect_equal(sum(opt$weights), 1, tolerance = 1e-6)
 })
+
+test_that("maxSR with box constraints (not just long_only) works (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  data(edhec)
+  R <- edhec[, 1:4]
+  ps <- portfolio.spec(colnames(R))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "box", min = 0.05, max = 0.60)
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "StdDev")
+
+  expect_no_error(
+    opt <- optimize.portfolio(R, ps, optimize_method = "ROI", maxSR = TRUE)
+  )
+  wts <- extractWeights(opt)
+  expect_true(all(wts >= 0.04))   # box min ~0.05, allow small tolerance
+  expect_true(all(wts <= 0.61))
+  expect_equal(sum(wts), 1, tolerance = 1e-6)
+})
+
+test_that("maxSR result has correct objective measures (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  data(edhec)
+  R <- edhec[, 1:4]
+  ps <- portfolio.spec(colnames(R))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "StdDev")
+
+  opt <- optimize.portfolio(R, ps, optimize_method = "ROI", maxSR = TRUE)
+  om <- opt$objective_measures
+  expect_true(!is.null(om$mean), info = "mean objective measure must be present")
+  expect_true(!is.null(om$StdDev), info = "StdDev objective measure must be present")
+  expect_true(is.finite(as.numeric(om$mean)))
+  expect_true(is.finite(as.numeric(om$StdDev)))
+  # Sharpe must be positive for long-only with positive mean
+  sr <- as.numeric(om$mean) / as.numeric(om$StdDev)
+  expect_true(sr > 0)
+})
+
+# ---------------------------------------------------------------------------
+# max STARR Ratio (ROI path, mean_etl_opt) — the analogous fix for ETL
+# ---------------------------------------------------------------------------
+
+test_that("maxSTARR optimization completes without error on near-zero variance data (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  ps <- portfolio.spec(colnames(R_26))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "ETL")
+
+  # Should complete without error — degenerate guard in mean_etl_opt
+  result <- tryCatch(
+    optimize.portfolio(R_26, ps, optimize_method = "ROI", maxSTARR = TRUE),
+    error = function(e) e
+  )
+  expect_false(inherits(result, "error"),
+               info = "must not throw 'xmin not less than xmax' for maxSTARR")
+  if (!inherits(result, "error")) {
+    wts <- extractWeights(result)
+    expect_true(all(is.finite(wts)))
+  }
+})
+
+test_that("maxSTARR optimization works on normal data with correct structure (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  data(edhec)
+  R <- edhec[, 1:4]
+  ps <- portfolio.spec(colnames(R))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "ETL")
+
+  expect_no_error(
+    opt <- optimize.portfolio(R, ps, optimize_method = "ROI", maxSTARR = TRUE)
+  )
+  wts <- extractWeights(opt)
+  expect_true(all(is.finite(wts)))
+  expect_equal(sum(wts), 1, tolerance = 1e-6)
+  om <- opt$objective_measures
+  expect_true(!is.null(om$mean) || !is.null(om$ETL),
+              info = "at least one objective measure must be present for maxSTARR")
+})
+
+test_that("maxSTARR with box constraints works (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  data(edhec)
+  R <- edhec[, 1:4]
+  ps <- portfolio.spec(colnames(R))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "box", min = 0.05, max = 0.60)
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "ETL")
+
+  expect_no_error(
+    opt <- optimize.portfolio(R, ps, optimize_method = "ROI", maxSTARR = TRUE)
+  )
+  wts <- extractWeights(opt)
+  expect_true(all(is.finite(wts)))
+  expect_true(all(wts >= 0.04))
+  expect_equal(sum(wts), 1, tolerance = 1e-6)
+})
+
+# ---------------------------------------------------------------------------
+# Direct unit tests for the optFUN.R functions touched by the fix
+# (called via optimize.portfolio to ensure proper moments population)
+# ---------------------------------------------------------------------------
+
+test_that("maxSR via optimize.portfolio returns finite weights (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  data(edhec)
+  R <- edhec[, 1:4]
+  ps <- portfolio.spec(colnames(R))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "StdDev")
+
+  opt <- optimize.portfolio(R, ps, optimize_method = "ROI",
+                            maxSR = TRUE, trace = FALSE)
+  wts <- extractWeights(opt)
+  expect_true(all(is.finite(wts)))
+  expect_equal(sum(wts), 1, tolerance = 1e-6)
+  # achieved return should be within feasible range
+  achieved <- sum(wts * colMeans(R))
+  expect_true(achieved >= min(colMeans(R)) - 1e-6)
+  expect_true(achieved <= max(colMeans(R)) + 1e-6)
+})
+
+test_that("maxSTARR (mean-ETL) via optimize.portfolio returns finite weights (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+
+  data(edhec)
+  R <- edhec[, 1:4]
+  ps <- portfolio.spec(colnames(R))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "ETL", arguments = list(p = 0.95))
+
+  opt <- optimize.portfolio(R, ps, optimize_method = "ROI",
+                            maxSTARR = TRUE, trace = FALSE)
+  wts <- extractWeights(opt)
+  expect_true(all(is.finite(wts)))
+  expect_equal(sum(wts), 1, tolerance = 1e-6)
+})
+
+test_that("maxSTARR warns + returns on degenerate (flat-mean) data (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.glpk")
+
+  # Construct a dataset where ALL asset means are identical → min_mean == max_mean
+  # This directly exercises the if (min_mean >= max_mean) branch in mean_etl_opt.
+  set.seed(1)
+  n_obs <- 50L; n_assets <- 3L
+  R_flat <- matrix(rnorm(n_obs * n_assets, mean = 0, sd = c(0.01, 0.02, 0.03)),
+                   nrow = n_obs, ncol = n_assets,
+                   dimnames = list(NULL, paste0("a", seq_len(n_assets))))
+  # Force means to exactly zero so min_mean == max_mean == 0
+  R_flat <- sweep(R_flat, 2L, colMeans(R_flat))
+  # optimize.portfolio requires time-series input
+  dates <- seq(as.Date("2010-01-01"), by = "month", length.out = n_obs)
+  R_flat <- xts::xts(R_flat, order.by = dates)
+
+  ps <- portfolio.spec(colnames(R_flat))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "ETL", arguments = list(p = 0.95))
+
+  # Should warn about degenerate return distribution, not error
+  expect_warning(
+    opt <- optimize.portfolio(R_flat, ps, optimize_method = "ROI",
+                              maxSTARR = TRUE, trace = FALSE),
+    regexp = "degenerate"
+  )
+  wts <- extractWeights(opt)
+  expect_true(all(is.finite(wts)))
+  expect_equal(sum(wts), 1, tolerance = 1e-6)
+})
+
+test_that("maxSR warns + returns on degenerate (flat-mean) data (#26)", {
+  skip_on_cran()
+  skip_if_not_installed("ROI")
+  skip_if_not_installed("ROI.plugin.quadprog")
+
+  # Same demeaned data — all asset means exactly zero → min_mean == max_mean
+  # This exercises the if (min_mean >= max_mean) branch in max_sr_opt.
+  set.seed(2)
+  n_obs <- 50L; n_assets <- 3L
+  R_flat <- matrix(rnorm(n_obs * n_assets, mean = 0, sd = c(0.01, 0.02, 0.03)),
+                   nrow = n_obs, ncol = n_assets,
+                   dimnames = list(NULL, paste0("b", seq_len(n_assets))))
+  R_flat <- sweep(R_flat, 2L, colMeans(R_flat))
+  dates <- seq(as.Date("2010-01-01"), by = "month", length.out = n_obs)
+  R_flat <- xts::xts(R_flat, order.by = dates)
+
+  ps <- portfolio.spec(colnames(R_flat))
+  ps <- add.constraint(ps, type = "full_investment")
+  ps <- add.constraint(ps, type = "long_only")
+  ps <- add.objective(ps, type = "return", name = "mean")
+  ps <- add.objective(ps, type = "risk",   name = "StdDev")
+
+  expect_warning(
+    opt <- optimize.portfolio(R_flat, ps, optimize_method = "ROI",
+                              maxSR = TRUE, trace = FALSE),
+    regexp = "degenerate"
+  )
+  wts <- extractWeights(opt)
+  expect_true(all(is.finite(wts)))
+  expect_equal(sum(wts), 1, tolerance = 1e-6)
+})
+

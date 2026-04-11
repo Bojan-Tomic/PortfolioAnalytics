@@ -214,6 +214,30 @@ if (requireNamespace("doParallel", quietly = TRUE) &&
 }
 
 # ---------------------------------------------------------------------------
+# Issue #22: Custom moment functions used in rebalancing tests
+# Defined here (not inside test files) so they are resolvable by match.fun()
+# when called from within foreach loops in optimize.portfolio.rebalancing.
+# ---------------------------------------------------------------------------
+
+#' Minimal custom moment function returning mu + sigma
+custom_moments_22 <- function(R, portfolio) {
+  out <- list()
+  out$mu    <- matrix(colMeans(R), ncol = 1)
+  out$sigma <- cov(R)
+  out
+}
+
+#' Extended custom moment function returning mu + sigma + m3 + m4
+custom_moments_full_22 <- function(R, portfolio) {
+  out <- list()
+  out$mu    <- matrix(colMeans(R), ncol = 1)
+  out$sigma <- cov(R)
+  out$m3    <- PerformanceAnalytics::M3.MM(R)
+  out$m4    <- PerformanceAnalytics::M4.MM(R)
+  out
+}
+
+# ---------------------------------------------------------------------------
 # Phase 6: Chart test fixtures (trace = TRUE result objects)
 #
 # Chart functions that call applyFUN(), extractStats(), or scatterFUN()
