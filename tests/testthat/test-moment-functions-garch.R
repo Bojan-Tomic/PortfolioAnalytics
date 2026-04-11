@@ -342,23 +342,25 @@ test_that("set.portfolio.moments CSM objective with meucci populates all moments
 
 # ===========================================================================
 # Section 10: set.portfolio.moments() — explicit posterior_p for meucci (line 209)
-# NOTE: Due to match.call() semantics, passing posterior_p as a variable name
-# returns an unevaluated symbol, causing meucci.moments() to fail.
-# This branch is therefore tested only by verifying the hasArg() detection
-# fires (i.e., the branch is entered), which coverage records show.
-# The test below verifies that passing the default uniform distribution 
-# explicitly (as a literal inline expression via the ... mechanism) reaches
-# the hasArg(posterior_p)=TRUE branch.
+# BUG-3 FIXED: match.call() replaced with list(...)[["posterior_p"]], so
+# passing posterior_p as a variable now correctly forwards the value.
 # ===========================================================================
 
-test_that("set.portfolio.moments meucci with posterior_p enters hasArg branch", {
-  # The hasArg(posterior_p) check at line 209 fires when posterior_p is in ...
-  # We cannot pass it as a variable (match.call bug), but can verify that
-  # the function reports a different behaviour vs. not passing it.
-  # Simply check that the default meucci path populates mu
+test_that("set.portfolio.moments meucci with posterior_p as variable (BUG-3 fixed)", {
+  # BUG-3 fixed: list(...)[["posterior_p"]] correctly gets the value.
+  # Passing a non-uniform distribution as a variable should produce different
+  # results than the uniform default.
   p_mean <- make_portf("mean", obj_type = "return")
-  result <- set.portfolio.moments(R4, p_mean, method = "meucci")
-  expect_true(!is.null(result$mu))
+  n <- nrow(R4)
+  # Skew weights toward recent observations
+  pp <- seq(0.5, 1.5, length.out = n)
+  pp <- pp / sum(pp)
+  result_custom <- set.portfolio.moments(R4, p_mean, method = "meucci",
+                                         posterior_p = pp)
+  result_default <- set.portfolio.moments(R4, p_mean, method = "meucci")
+  expect_true(!is.null(result_custom$mu))
+  # Custom weights should produce different mu than uniform
+  expect_false(isTRUE(all.equal(result_custom$mu, result_default$mu)))
 })
 
 # ===========================================================================

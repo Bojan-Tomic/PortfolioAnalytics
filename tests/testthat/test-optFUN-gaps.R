@@ -53,25 +53,16 @@ R5 <- edhec[, 1:5]
 # ===========================================================================
 # Gap 5: gmv_opt_ptc with non-NA target return
 #
-# gmv_opt_ptc() is called by optimize.portfolio when there is a
-# transaction_cost constraint and the risk objective is StdDev/var.
-# We exercise the non-NA target branch by passing a mean return objective
-# AND a target at the high-level optimize.portfolio call, which propagates
-# `target` as a numeric value into gmv_opt_ptc().
-#
-# NOTE: as documented in test-optimize-roi-extended.R Section 3, the function
-# has a known formulation issue (rhs = 1 + target vs rhs = target) that makes
-# the QP infeasible when target=NA (effectively 0 weights summing to 1+0=1).
-# With an explicit non-NA target the equality RHS becomes 1+target, which may
-# or may not be feasible, so we use tryCatch and skip if the solver fails.
-# What matters for coverage is that the `if(!is.na(target))` branch is
-# *entered* (i.e., the code does not immediately hit the else clause).
+# BUG-7 FIXED: rhs was incorrectly set to `1 + target` instead of `target`.
+# The fix changes the RHS to just `target`, making the mean-return equality
+# constraint mathematically correct.
+# With a small ptc (0.001) the QP is feasible and returns valid weights.
 # ===========================================================================
 
 portf_ptc_tgt <- portfolio.spec(assets = colnames(R4))
 portf_ptc_tgt <- add.constraint(portf_ptc_tgt, type = "full_investment")
 portf_ptc_tgt <- add.constraint(portf_ptc_tgt, type = "long_only")
-portf_ptc_tgt <- add.constraint(portf_ptc_tgt, type = "transaction_cost", ptc = 0.005)
+portf_ptc_tgt <- add.constraint(portf_ptc_tgt, type = "transaction_cost", ptc = 0.001)
 portf_ptc_tgt <- add.objective(portf_ptc_tgt, type = "return", name = "mean")
 portf_ptc_tgt <- add.objective(portf_ptc_tgt, type = "risk",   name = "StdDev")
 
@@ -83,25 +74,16 @@ opt_ptc_tgt <- tryCatch(
   error = function(e) NULL
 )
 
-test_that("gmv_opt_ptc with target: optimize.portfolio does not throw an error", {
-  # The solve may or may not succeed (known formulation issue), but R should
-  # not throw an unhandled error — it should either return a result or NULL
-  # from the tryCatch above.
-  expect_true(TRUE)   # reaching here means no unhandled error was thrown
-})
-
-test_that("gmv_opt_ptc with target: if a result is returned it has the right class", {
+test_that("gmv_opt_ptc with target: optimize.portfolio returns valid result (BUG-7 fixed)", {
   skip_if(is.null(opt_ptc_tgt))
   expect_s3_class(opt_ptc_tgt, "optimize.portfolio.ROI")
 })
 
-test_that("gmv_opt_ptc with target: if a result is returned with valid weights, weights are numeric", {
+test_that("gmv_opt_ptc with target: returned weights are numeric and finite (BUG-7 fixed)", {
   skip_if(is.null(opt_ptc_tgt))
-  # Due to a known formulation bug in gmv_opt_ptc, the solver may return
-  # NA weights even when a result object is produced.  Skip rather than fail.
   w <- extractWeights(opt_ptc_tgt)
-  skip_if(!is.numeric(w), "gmv_opt_ptc known formulation issue: non-numeric weights")
   expect_true(is.numeric(w))
+  expect_true(all(is.finite(w)))
 })
 
 

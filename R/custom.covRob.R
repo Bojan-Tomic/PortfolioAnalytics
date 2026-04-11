@@ -87,7 +87,7 @@ custom.covRob.Rocke <- function(R, ...){
 #' @export
 custom.covRob.Mcd <- function(R, ...){
   
-  if(hasArg(control)) control = match.call(expand.dots = TRUE)$control else control = MycovRobMcd()
+  if(hasArg(control)) control = list(...)[["control"]] else control = MycovRobMcd()
   if(hasArg(alpha)) alpha = match.call(expand.dots = TRUE)$alpha else alpha = control$alpha
   if(hasArg(nsamp)) nsamp = match.call(expand.dots = TRUE)$nsamp else nsamp = control$nsamp
   if(hasArg(nmini)) nmini = match.call(expand.dots = TRUE)$nmini else nmini = control$nmini

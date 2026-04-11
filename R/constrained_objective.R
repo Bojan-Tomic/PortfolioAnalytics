@@ -112,7 +112,7 @@ constrained_objective_v1 <- function(w, R, constraints, ..., trace=FALSE, normal
           tmp_measure = NULL
           multiplier  = objective$multiplier
           #if(is.null(objective$arguments) | !is.list(objective$arguments)) objective$arguments<-list()
-          switch(objective$name,
+        switch(objective$name,
               mean =,
               median = {
                   fun = match.fun(objective$name)  
@@ -568,7 +568,8 @@ constrained_objective <- constrained_objective_v2 <- function(w, R, portfolio, .
       if(objective$enabled){
         tmp_measure <- NULL
         multiplier <- objective$multiplier
-        #if(is.null(objective$arguments) | !is.list(objective$arguments)) objective$arguments<-list()
+         #if(is.null(objective$arguments) | !is.list(objective$arguments)) objective$arguments<-list()
+        fun <- NULL
         switch(objective$name,
                mean =,
                median = {
@@ -628,7 +629,11 @@ constrained_objective <- constrained_objective_v2 <- function(w, R, portfolio, .
         }
         
         # tmp_measure <- try(do.call(fun, .formals, envir=env), silent=TRUE)
-        tmp_measure <- try(do.call(fun, .formals), silent=TRUE)
+        if (is.function(fun)) {
+          tmp_measure <- try(do.call(fun, .formals), silent=TRUE)
+        } else {
+          next  # no function defined for this objective (e.g. CSM), skip it
+        }
         
         if(isTRUE(trace) | isTRUE(storage)) {
           # Subsitute 'StdDev' if the objective name is 'var'

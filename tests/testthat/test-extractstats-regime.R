@@ -7,14 +7,9 @@
 #   - extractStats.optimize.portfolio.rebalancing  regime branch (line 276-277)
 #   - extractObjectiveMeasures.optimize.portfolio.rebalancing regime branch (line 518-519)
 #
-# Strategy: optimize.portfolio.rebalancing() cannot currently accept a
-# regime.portfolios object directly (bug: portfolio$constraints is NULL for
-# regime.portfolios, crashing the turnover_idx check). Instead we manually
-# construct the expected rebalancing result object by running individual
-# optimize.portfolio() calls (which DO handle regime.portfolios correctly),
-# then wrapping them in the standard rebalancing list structure.
-# The internal helpers extractStatsRegime() and extractObjRegime() only require
-# the correct structure — they do not care how it was built.
+# BUG-5 FIXED: optimize.portfolio.rebalancing() now handles regime.portfolios
+# directly (the turnover_idx check is guarded for NULL constraints).
+# A direct call test is included below.
 #
 # Copyright (c) 2004-2026 Brian G. Peterson, Peter Carl, Ross Bennett
 # License: GPL-3
@@ -232,4 +227,33 @@ test_that("xts column names come from name.replace (short form, no 'objective_me
   for (el in eom_regime) {
     expect_false(any(grepl("objective_measures", colnames(el))))
   }
+})
+
+# ---------------------------------------------------------------------------
+# 4. BUG-5 FIXED: optimize.portfolio.rebalancing() with regime.portfolios
+#    (was crashing with 'argument to which is not logical')
+# ---------------------------------------------------------------------------
+
+test_that("optimize.portfolio.rebalancing accepts regime.portfolios directly (BUG-5 fixed)", {
+  # BUG-5 fix: turnover_idx check is now guarded for NULL constraints.
+  # This test calls optimize.portfolio.rebalancing() directly with the
+  # regime.portfolios object to confirm it no longer crashes.
+  result <- tryCatch(
+    suppressMessages(suppressWarnings(
+      optimize.portfolio.rebalancing(
+        R          = R_regime,
+        portfolio  = regime_port,
+        optimize_method = "ROI",
+        rebalance_on    = "quarters",
+        training_period = 36L
+      )
+    )),
+    error = function(e) e
+  )
+  # Should succeed (not throw) — result is an optimize.portfolio.rebalancing object
+  if (inherits(result, "error")) {
+    # If it still errors, fail with informative message
+    fail(paste("optimize.portfolio.rebalancing with regime.portfolios errored:", conditionMessage(result)))
+  }
+  expect_s3_class(result, "optimize.portfolio.rebalancing")
 })

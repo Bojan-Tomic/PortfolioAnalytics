@@ -9,14 +9,10 @@
 #     - message=TRUE branch (line 3623)
 #
 #   R/extractstats.R — extractStats.optimize.portfolio.parallel (lines 317-328)
-#     NOTE: This function contains a bug: it iterates over `object` directly
-#     (which has 3 named elements: $optimizations, $call, $elapsed_time) instead
-#     of `object$optimizations`. As a result:
-#       - resultlist[[1]] == object$optimizations  (a list)
-#       - resultlist[[2]] == object$call           (a call)
-#       - resultlist[[3]] == object$elapsed_time   (difftime)
-#     extractStats(resultlist[[2]]) (a call object) is likely to error.
-#     The tests document this bug and guard accordingly.
+#     BUG-1 FIXED: The function now correctly iterates over
+#     `object$optimizations` (was incorrectly iterating over `object` directly,
+#     which has 3 named elements: $optimizations, $call, $elapsed_time).
+#     extractStats(opt_par) should now succeed.
 #
 # Copyright (c) 2004-2026 Brian G. Peterson, Peter Carl, Ross Bennett
 # License: GPL-3
@@ -130,20 +126,11 @@ test_that("optimize.portfolio.parallel with message=TRUE does not error", {
 # ===========================================================================
 # Section 3: extractStats.optimize.portfolio.parallel (lines 317-328)
 #
-# BUG DOCUMENTATION: The function iterates `1:length(object)` where object has
-# 3 slots ($optimizations, $call, $elapsed_time).  The intent was to iterate
-# over `object$optimizations`. As a result:
-#   - `resultlist[[1]]` => the list of per-node results (correct type only by
-#      accident if extractStats dispatches on it)
-#   - `resultlist[[2]]` => a 'call' object => extractStats(call) will error
-#   - `resultlist[[3]]` => a 'difftime' => extractStats(difftime) will error
-#
-# Since the bug is real and the function is broken, we document it here:
-#   - calling extractStats on the parallel result will produce an error
-#   - workaround: call extractStats on each element of $optimizations directly
+# BUG-1 FIXED: The function now correctly uses `object$optimizations` as the
+# iteration target. extractStats(opt_par) should return a matrix of stats.
 # ===========================================================================
 
-test_that("extractStats on each node result individually works (workaround)", {
+test_that("extractStats on each node result individually works", {
   skip_if(is.null(opt_par))
   for (res in opt_par$optimizations) {
     stats <- tryCatch(extractStats(res), error = function(e) NULL)
@@ -155,24 +142,16 @@ test_that("extractStats on each node result individually works (workaround)", {
 
 test_that("extractStats.optimize.portfolio.parallel function exists in package namespace", {
   skip_if(is.null(opt_par))
-  # Document the bug: extractStats(opt_par) errors because of the wrong
-  # iteration variable (object vs object$optimizations).
-  # We verify the function exists in the package namespace.
-  expect_true(existsMethod <- exists("extractStats.optimize.portfolio.parallel",
-                                     envir = asNamespace("PortfolioAnalytics")))
+  expect_true(exists("extractStats.optimize.portfolio.parallel",
+                     envir = asNamespace("PortfolioAnalytics")))
 })
 
-test_that("extractStats on parallel object either succeeds or fails with known bug", {
+test_that("extractStats on parallel object succeeds (BUG-1 fixed)", {
   skip_if(is.null(opt_par))
-  # The function has a known bug. Either it produces a result (if by chance
-  # the dispatch lands on the optimizations sub-list) or it errors.
-  # Either way we ensure coverage of the function body lines 317-328.
-  result <- tryCatch(
-    extractStats(opt_par),
-    error = function(e) structure(list(error = conditionMessage(e)), class = "error")
-  )
-  # Must produce SOMETHING (list/matrix or error structure)
-  expect_false(is.null(result))
+  # BUG-1 fixed: resultlist <- object$optimizations (was object)
+  result <- extractStats(opt_par)
+  expect_true(is.matrix(result) || is.numeric(result))
+  expect_true("out" %in% colnames(result) || "out" %in% names(result))
 })
 
 # ===========================================================================

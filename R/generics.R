@@ -1076,6 +1076,7 @@ summary.optimize.portfolio.parallel <- function(object, ...){
   out$n_optimizations <- length(object$optimizations)
   xx <- lapply(object$optimizations, function(x) {
     tmp <- extractStats(x)
+    if (is.vector(tmp)) tmp <- t(as.matrix(tmp))
     out <- tmp[which.min(tmp[,"out"]),]
     out})
   stats <- do.call(rbind, xx)

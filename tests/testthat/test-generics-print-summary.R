@@ -305,10 +305,10 @@ test_that("summary.efficient.frontier: prints without error", {
 # Section 11: summary.optimize.portfolio.parallel (L1073-L1085) +
 #             print.optimize.portfolio.parallel (L1092-L1112)
 #
-# NOTE: summary.optimize.portfolio.parallel calls extractStats() on each
-# node result via lapply(object$optimizations, ...) — this is NOT the same
-# as the buggy extractStats.optimize.portfolio.parallel which iterates
-# object directly. The summary method correctly accesses $optimizations.
+# BUG-8 FIXED: summary.optimize.portfolio.parallel now coerces vector results
+# from ROI solver to matrix before [,"out"] indexing.
+# The original workaround used optimize_method="random"; an additional test
+# confirms the ROI path also works.
 # ===========================================================================
 
 skip_if_not_installed("doParallel")
@@ -359,6 +359,26 @@ test_that("print.optimize.portfolio.parallel: prints without error", {
   )
   skip_if(is.null(result))
   expect_true(any(grepl("PortfolioAnalytics|Number of Optimizations", result)))
+})
+
+# BUG-8 FIXED: summary() now works with ROI solver (was crashing on vector indexing)
+test_that("summary.optimize.portfolio.parallel with ROI solver (BUG-8 fixed)", {
+  skip_if_not_installed("doParallel")
+  cl2 <- parallel::makeCluster(2)
+  doParallel::registerDoParallel(cl2)
+  opt_roi <- tryCatch(
+    suppressMessages(suppressWarnings(
+      optimize.portfolio.parallel(R4, portf_par,
+                                  optimize_method = "ROI",
+                                  nodes          = 2)
+    )),
+    error = function(e) NULL
+  )
+  parallel::stopCluster(cl2)
+  foreach::registerDoSEQ()
+  skip_if(is.null(opt_roi))
+  s <- tryCatch(summary(opt_roi), error = function(e) NULL)
+  expect_s3_class(s, "summary.optimize.portfolio.parallel")
 })
 
 # ===========================================================================

@@ -315,7 +315,7 @@ extractStatsRegime <- function(object, prefix=NULL){
 
 #' @export
 extractStats.optimize.portfolio.parallel <- function(object,prefix=NULL,...) {
-    resultlist<-object
+    resultlist<-object$optimizations
     l = length(resultlist)
     result=NULL
     for (i in 1:l) {

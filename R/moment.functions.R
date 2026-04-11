@@ -43,8 +43,8 @@ CCCgarch.MM = function(R, momentargs = NULL , ... )
   }
   U = R/S; #filtered out time-varying volatility
   if (!hasArg(clean)){ 
-    clean = match.call(expand.dots = TRUE)$clean
-  }else{ clean = NULL }
+    clean = NULL
+  }else{ clean = list(...)[["clean"]] }
   if(!is.null(clean)){ 
     cleanU <- try(Return.clean(U, method = clean))
     if (!inherits(cleanU, "try-error")) { U = cleanU }
@@ -206,7 +206,7 @@ set.portfolio.moments <- set.portfolio.moments_v2 <- function(R,
              B <- black.litterman(R=tmpR, P=P, Mu=Mu, Sigma=Sigma, Views=Views)
            },
            meucci = {
-             if(hasArg(posterior_p)) posterior_p=match.call(expand.dots=TRUE)$posterior_p else posterior_p=rep(1 / nrow(R), nrow(R))
+             if(hasArg(posterior_p)) posterior_p=list(...)[["posterior_p"]] else posterior_p=rep(1 / nrow(R), nrow(R))
              meucci.model <- meucci.moments(R=tmpR, posterior_p=posterior_p)
            }
     ) # end switch for fitting models based on method

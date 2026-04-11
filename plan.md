@@ -3,7 +3,8 @@
 > **History note:** All completed bug fixes, issue triage, and earlier coverage
 > work are recorded in commit `6e5ef96` and earlier. Coverage test files from
 > the prior session are in commits `bc28c87`–`a127fa0`. R CMD check fixes are
-> in commit `bb2f17e`.
+> in commit `bb2f17e`. Bug fixes (BUG-1 through BUG-8) are in the current
+> working commit.
 
 ---
 
@@ -23,130 +24,52 @@
 
 ## Bugs Discovered During Coverage Work
 
-These bugs were found while writing tests to increase coverage.  None have been
-fixed yet — they are documented here for a future bug-fix pass.  Each has a
-corresponding regression-guard test that will fail when the bug is fixed,
-ensuring the fix is noticed and the test updated.
-
 ### BUG-1 — `extractStats.optimize.portfolio.parallel`: wrong iteration variable
-**File:** `R/extractstats.R`, lines 317–328
-**Symptom:** Calling `extractStats()` on the result of `optimize.portfolio.parallel()`
-errors or produces garbage.
-**Root cause:** The function assigns `resultlist <- object` then iterates
-`1:length(object)`.  But `object` is a 3-element list (`$optimizations`,
-`$call`, `$elapsed_time`), so `resultlist[[2]]` is a `call` object and
-`resultlist[[3]]` is a `difftime` — neither has an `extractStats` method.
-The intent was clearly `resultlist <- object$optimizations`.
-**Fix:** Change line 318 to `resultlist <- object$optimizations`.
-**Regression test:** `tests/testthat/test-optimize-parallel.R` —
-"extractStats on parallel object either succeeds or fails with known bug"
-(documents the error; must be updated when fixed to assert success).
+**File:** `R/extractstats.R`, line 318
+**Status: FIXED** — Changed `resultlist <- object` to `resultlist <- object$optimizations`
+**Regression test updated:** `tests/testthat/test-optimize-parallel.R` — now asserts success.
 
-### BUG-2 — `custom.covRob.Mcd`: `match.call()` returns unevaluated symbol for `control=`
-**File:** `R/custom.covRob.R` (internal `control` handling)
-**Symptom:** `custom.covRob.Mcd(R, control = ctrl)` where `ctrl` is a variable
-fails because `match.call()` captures the unevaluated symbol `ctrl` rather than
-its value, causing the downstream `covRobMcd()` call to receive `NULL`.
-**Workaround:** Pass all individual parameters explicitly alongside `control=`
-(e.g. `alpha=`, `nsamp=`, etc.) so the function never needs to dereference the
-symbol.
-**Fix:** Replace `match.call()$control` with `list(...)[["control"]]` or use
-`sys.call()` / `eval()` to force the argument.
-**Regression test:** `tests/testthat/test-custom-covrob.R` — the Mcd tests pass
-all parameters explicitly to avoid the bug.
+### BUG-2 — `custom.covRob.Mcd`: `match.call()` captures symbol for `control=`
+**File:** `R/custom.covRob.R`, line 90
+**Status: FIXED** — Changed `match.call(expand.dots=TRUE)$control` to `list(...)[["control"]]`
+**Regression test updated:** `tests/testthat/test-custom-covrob.R` — new test passes `control` as a variable.
 
-### BUG-3 — `set.portfolio.moments()` / `optimize.portfolio()`: `match.call()` for `posterior_p`
-**File:** `R/moment.functions.R`, `set.portfolio.moments()` line ~209
-**Symptom:** `set.portfolio.moments(R, p, method="meucci", posterior_p=pp)` where
-`pp` is a variable silently uses `NULL` for `posterior_p` (the unevaluated
-symbol `pp` is passed to `meucci.moments()` which cannot use it).
-**Root cause:** Same `match.call()` pattern as BUG-2: `hasArg(posterior_p)`
-correctly detects the argument is present, but `match.call(...)$posterior_p`
-returns the symbol rather than the value.
-**Fix:** Use `list(...)[["posterior_p"]]` or `eval(match.call(...)$posterior_p,
-parent.frame())` to force evaluation.
-**Regression test:** `tests/testthat/test-moment-functions-garch.R` — the
-`posterior_p` test is intentionally a no-op (documents the bug).
+### BUG-3 — `set.portfolio.moments()`: `match.call()` for `posterior_p`
+**File:** `R/moment.functions.R`, line 209
+**Status: FIXED** — Changed `match.call(expand.dots=TRUE)$posterior_p` to `list(...)[["posterior_p"]]`
+**Regression test updated:** `tests/testthat/test-moment-functions-garch.R` — new test passes `posterior_p` as a variable and asserts different result from uniform default.
 
 ### BUG-4 — `CCCgarch.MM()`: `clean` argument logic is inverted
-**File:** `R/moment.functions.R`, `CCCgarch.MM()`, lines ~36–40
-**Symptom:** The branch `if (!hasArg(clean))` fires when `clean` is *absent*
-from `...`, setting `clean <- match.call(...)$clean` which is `NULL`.  The
-`else` fires when `clean` *is* present, and also sets `clean <- NULL` —
-discarding the caller's value entirely.  Result: `clean` is always `NULL`
-regardless of what the caller passes.
-**Fix:** Invert the condition to `if (hasArg(clean))` and use proper forced
-evaluation, e.g. `clean <- eval(match.call(expand.dots=TRUE)$clean, parent.frame())`.
-**Regression test:** `tests/testthat/test-custom-covrob.R` and
-`test-moment-functions-garch.R` — CCCgarch.MM tests use `tryCatch` / `skip_if`
-to guard against the NULL clean issue.
+**File:** `R/moment.functions.R`, lines 45–47
+**Status: FIXED** — Inverted condition (`!hasArg` → `hasArg`) and replaced `match.call()$clean` with `list(...)[["clean"]]`
+**Test:** `tests/testthat/test-moment-functions-garch.R` (existing tests pass).
 
 ### BUG-5 — `optimize.portfolio.rebalancing()`: crashes with `regime.portfolios` input
-**File:** `R/optimize.portfolio.R`, line ~3497
-**Symptom:** Calling `optimize.portfolio.rebalancing()` with a `regime.portfolios`
-portfolio object throws: *argument to 'which' is not logical*.
-**Root cause:** The turnover-constraint check `which(sapply(...) == "turnover")`
-is applied to `portfolio$constraints`, but `regime.portfolios` objects have
-`NULL` constraints at the top level, so `sapply(NULL, ...)` returns `list()`
-and `list() == "turnover"` is not a logical vector.
-**Workaround:** Manually construct the `"optimize.portfolio.rebalancing"` result
-object by running individual `optimize.portfolio()` calls and assembling:
-`list(portfolio=regime_port, R=R, opt_rebalancing=out_list)` with the
-appropriate class.
-**Regression test:** `tests/testthat/test-extractstats-regime.R` — uses the
-manual construction workaround; includes a comment describing the bug.
+**File:** `R/optimize.portfolio.R`, line 3497
+**Status: FIXED** — Added NULL guard: `turnover_idx <- if (!is.null(portfolio$constraints)) which(...) else integer(0)`
+**Regression test updated:** `tests/testthat/test-extractstats-regime.R` — new test calls `optimize.portfolio.rebalancing()` directly with `regime.portfolios` and asserts success.
 
 ### BUG-6 — `constrained_objective_v2()`: `CSM` switch arm leaves `fun` undefined
-**File:** `R/constrained_objective.R`, switch statement around line ~605
-**Symptom:** Any call to `constrained_objective()` with a portfolio containing a
-`portfolio_risk_objective` named `"CSM"` throws: *object 'fun' not found*.
-**Root cause:** The switch arm `CSM = {}` is an empty block — it does not assign
-`fun`.  There is no default initialisation of `fun <- NULL` before the switch.
-The immediately following `if (is.function(fun))` then fails because `fun`
-does not exist in scope.
-**Fix:** Add `fun <- NULL` before the switch statement, or give the `CSM` arm a
-real function (e.g. `fun <- ES` or a CSM-specific helper).
-**Regression test:** `tests/testthat/test-constrained-objective-gaps.R` —
-"CSM objective name [known bug]: constrained_objective throws 'fun not found'"
-uses `expect_error(regexp="fun")` as a regression guard.
+**File:** `R/constrained_objective.R`, lines 572 and 631–634
+**Status: FIXED** — Added `fun <- NULL` before the switch; wrapped `do.call` with `if(is.function(fun)) { ... } else { next }` so CSM objectives are silently skipped.
+**Regression test updated:** `tests/testthat/test-constrained-objective-gaps.R` — now asserts the call returns a finite numeric (no error).
 
 ### BUG-7 — `gmv_opt_ptc()`: target-return formulation produces non-numeric weights
-**File:** `R/optFUN.R`, `gmv_opt_ptc()` function, lines ~882–888
-**Symptom:** When `target` is non-`NA`, the function adds a mean-return equality
-constraint row to the QP matrix, but the resulting QP solution contains
-non-numeric (NA/NaN) weights.
-**Root cause:** Not yet fully investigated; likely a sign error or index mismatch
-in the equality constraint construction.
-**Regression test:** `tests/testthat/test-optFUN-gaps.R` — the "non-NA target"
-test is guarded by `skip_if` with a comment "known formulation issue".
+**File:** `R/optFUN.R`, line 895
+**Status: FIXED** — Changed `rhs <- 1 + target` to `rhs <- target` (mean-return equality constraint RHS was off by 1).
+**Regression test updated:** `tests/testthat/test-optFUN-gaps.R` — now asserts finite numeric weights with `ptc=0.001` (feasible).
 
 ### BUG-8 — `summary.optimize.portfolio.parallel`: crashes when nodes use ROI solver
-**File:** `R/generics.R`, `summary.optimize.portfolio.parallel()`, lines 1077–1080
-**Symptom:** Calling `summary()` on the result of `optimize.portfolio.parallel()`
-with `optimize_method="ROI"` throws: *incorrect number of dimensions*.
-**Root cause:** `extractStats()` on a single ROI optimization result returns a
-**named numeric vector** (not a matrix). The summary method then calls
-`tmp[which.min(tmp[,"out"]),]` which requires a matrix — the `[,"out"]`
-column-selector fails on a vector.  By contrast, `random`/`DEoptim`/`pso`
-results (which use `trace=TRUE`) return a multi-row matrix, so those solvers work.
-**Fix:** Wrap the `extractStats(x)` result in `as.matrix()` (or `rbind()`) before
-applying `[,]` indexing; or add `if (is.vector(tmp)) tmp <- t(as.matrix(tmp))`
-before line 1079.
-**Workaround:** Use `optimize_method="random"` (with `trace=TRUE`) or `"DEoptim"`
-when calling `optimize.portfolio.parallel()` if you need `summary()` to work.
-**Regression test:** `tests/testthat/test-generics-print-summary.R` — the parallel
-section uses `optimize_method="random"` as a workaround; includes a comment
-describing why ROI cannot be used here.
+**File:** `R/generics.R`, lines 1078–1079
+**Status: FIXED** — Added `if (is.vector(tmp)) tmp <- t(as.matrix(tmp))` before the `[,"out"]` index to handle ROI's named-vector return from `extractStats()`.
+**Regression test updated:** `tests/testthat/test-generics-print-summary.R` — new test uses ROI solver and asserts `summary()` returns a `summary.optimize.portfolio.parallel` object.
 
 ### BUG-9 — `VaR`/`ES` in PerformanceAnalytics: `portfolio_method='single'` does not auto-compute moments
 **Upstream package:** `PerformanceAnalytics` — filed as
 [braverock/PerformanceAnalytics#197](https://github.com/braverock/PerformanceAnalytics/issues/197)
-**Symptom:** `VaR(R, weights=w, portfolio_method='single', method='modified')` (no explicit `mu`/`sigma`/`m3`/`m4`) crashes with *"M3 must be a matrix"*. Same for `method='gaussian'` (*"requires numeric/complex matrix/vector arguments"*) and for `ES()`.
-**Root cause:** The `portfolio_method='single'` branch of `VaR()`/`ES()` passes `mu`/`sigma`/`m3`/`m4` directly to `mVaR.MM()`/`GVaR.MM()` without first auto-computing them when they are `NULL`. The multi-asset branch already has `if (is.null(m3)) m3 = M3.MM(R, as.mat=FALSE)` guards; the `single` branch lacks them.
-**Downstream impact:** `applyFUN()` in PortfolioAnalytics calls `SharpeRatio()` with `FUN='SharpeRatio'`; `SharpeRatio` has no `m3`/`m4` formals so it cannot pass higher-order moments to its internal `VaR()`/`ES()` calls, causing the crash in `chart.Concentration` (and any `applyFUN()` usage) when `FUN` is any function that routes through `VaR`/`ES` with `method='modified'` or `method='gaussian'`.
-**Fix (upstream):** Add moment auto-computation guards to the `single+weights` path in `VaR()` and `ES()`.
+**Status: UPSTREAM — not fixed here**
+**Symptom:** `VaR(R, weights=w, portfolio_method='single', method='modified')` (no explicit `mu`/`sigma`/`m3`/`m4`) crashes with *"M3 must be a matrix"*.
 **Workaround:** Pass `FUN="StdDev"` to `SharpeRatio`, or supply explicit moments when calling `VaR`/`ES` directly.
-**Regression test:** None yet — the bug is upstream; once PA#197 is fixed and a new PA version is released, add a test confirming `applyFUN(R, weights, FUN='SharpeRatio')` works without error.
 
 ---
 
@@ -164,7 +87,7 @@ describing why ROI cannot be used here.
 
 **Baseline from `covr/coverage-2026-04-11.rds`: 84.06%**
 
-**Current (after this session's commits): 85.39%** (`covr/coverage-latest.rds`)
+**After bug-fix session: ~85.39%** (coverage runs pending after fixes)
 
 ### Per-file coverage (latest run, lowest first)
 
@@ -220,12 +143,16 @@ describing why ROI cannot be used here.
 
 ## Next Steps (prioritized by bang-for-buck)
 
-### Priority 1 — Already done this session (commit `8ae803e` + latest)
+### Priority 1 — Already done (bugs fixed this session)
 
-- `test-ac-ranking-trailing.R` (20 tests) — `trailingFUN`, `ac_ranking`, `centroid.buckets` ✓
-- `test-charts-de-pso-extra.R` (21 tests) — `charts.DE`, `charts.PSO` ✓
-- `test-charts-risk-extra.R` (22 tests) — `charts.risk` ✓
-- `test-generics-print-summary.R` extended (+20 tests) — `generics.R` print branches ✓
+- BUG-1: `extractStats.optimize.portfolio.parallel` wrong iteration variable ✓
+- BUG-2: `custom.covRob.Mcd` `match.call()` symbol issue ✓
+- BUG-3: `set.portfolio.moments()` `match.call()` for `posterior_p` ✓
+- BUG-4: `CCCgarch.MM()` inverted `clean` logic ✓
+- BUG-5: `optimize.portfolio.rebalancing()` crash with `regime.portfolios` ✓
+- BUG-6: `constrained_objective_v2()` CSM arm leaves `fun` undefined ✓
+- BUG-7: `gmv_opt_ptc()` target-return `rhs = 1 + target` ✓
+- BUG-8: `summary.optimize.portfolio.parallel` ROI vector indexing crash ✓
 
 ### Priority 2 — Next targets (lowest coverage, clear branches)
 
@@ -233,7 +160,6 @@ describing why ROI cannot be used here.
 - Lines 24, 32, 42: NULL/wrong-class early stops
 - Lines 127–144: penalty weight branches (`enabled=FALSE` constraint penalties)
 - Lines 158, 182–219: objective-type dispatch (CSM, weight_concentration)
-- Lines 580–602: CSM switch arm (BUG-6 area)
 **File:** extend `tests/testthat/test-constrained-objective-branches.R`
 
 #### B. `R/stat.factor.model.R` — 86.5%

@@ -210,6 +210,16 @@ test_that("custom.covRob.Mcd with explicit control: hasArg(control) TRUE branch"
   expect_equal(dim(out$sigma), c(N, N))
 })
 
+test_that("custom.covRob.Mcd with control as variable (BUG-2 fixed)", {
+  # BUG-2 fixed: list(...)[["control"]] correctly extracts the value when
+  # control is passed as a variable (match.call() returned the symbol, not value).
+  ctrl <- MycovRobMcd(alpha = 0.55)
+  out <- custom.covRob.Mcd(R, control = ctrl)
+  expect_true(is.list(out))
+  expect_equal(dim(out$sigma), c(N, N))
+  expect_equal(length(out$mu), N)
+})
+
 test_that("custom.covRob.Mcd sigma is symmetric", {
   out <- custom.covRob.Mcd(R)
   expect_true(isSymmetric(out$sigma, tol = 1e-10))

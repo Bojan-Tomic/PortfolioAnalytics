@@ -269,24 +269,20 @@ test_that("normalize=FALSE under-sum: penalty scales with violation size", {
 
 
 # ===========================================================================
-# Gap 4: CSM empty switch arm — documents a known latent bug
+# Gap 4: CSM empty switch arm — BUG-6 fixed
 #
 # In constrained_objective_v2, the switch on objective$name has an empty arm
 # for "CSM" (line ~605):
 #
 #   CSM = {}, ## xinran
 #
-# This arm does nothing — it does NOT assign `fun`.  There is no prior
-# default-initialisation of `fun` to NULL before the switch.  After the
-# switch, line ~614 immediately reads:
+# Fix applied: `fun <- NULL` is initialised before the switch, and the
+# `do.call` is guarded with `if (is.function(fun)) { ... } else { next }`.
+# This means a CSM objective is silently skipped (contributes 0 to `out`)
+# rather than throwing an error.
 #
-#   if(is.function(fun)) { ... }
-#
-# Since `fun` was never set, R throws: "object 'fun' not found".
-#
-# These tests document this known bug.  When the bug is fixed (e.g. by
-# adding `fun <- NULL` before the switch, or by giving CSM a real function),
-# these tests will need to be updated to reflect the corrected behavior.
+# Test updated to verify the fixed behavior: call succeeds and returns a
+# finite numeric.
 # ===========================================================================
 
 portf_csm <- portfolio.spec(assets = colnames(R5))
@@ -306,11 +302,10 @@ portf_csm$objectives <- list(
   )
 )
 
-test_that("CSM objective name [known bug]: constrained_objective throws 'fun not found'", {
-  # Document the bug: CSM = {} in the switch leaves `fun` unset, so the
-  # subsequent `if(is.function(fun))` throws an error.
-  expect_error(
-    constrained_objective(w = w5, R = R5, portfolio = portf_csm, trace = FALSE),
-    regexp = "fun"
-  )
+test_that("CSM objective name [BUG-6 fixed]: constrained_objective succeeds and returns numeric", {
+  # BUG-6 is fixed: fun <- NULL before switch + do.call guarded by is.function(fun).
+  # The CSM arm is silently skipped (contributes 0 to out).
+  result <- constrained_objective(w = w5, R = R5, portfolio = portf_csm, trace = FALSE)
+  expect_true(is.numeric(result))
+  expect_true(is.finite(result))
 })

@@ -3494,7 +3494,7 @@ optimize.portfolio.rebalancing <- function(R, portfolio = NULL, constraints = NU
   }
 
   # turnover weight_initial is previous time point optimal weight
-  turnover_idx <- which(sapply(portfolio$constraints, function(x) x$type == "turnover"))
+  turnover_idx <- if (!is.null(portfolio$constraints)) which(sapply(portfolio$constraints, function(x) x$type == "turnover")) else integer(0)
   if (length(turnover_idx) > 0) {
     turnover_idx <- turnover_idx[1]
     # original weight_initial

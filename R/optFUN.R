@@ -892,7 +892,7 @@ gmv_opt_ptc <- function(R, constraints, moments, lambda, target, init_weights, s
   }
   Amat <- c(tmp_means, rep(0, 2 * N))
   dir <- "=="
-  rhs <- 1 + target
+  rhs <- target
   meq <- 1
   
   # separate the weights into w, w^+, and w^-
