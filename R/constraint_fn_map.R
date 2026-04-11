@@ -441,7 +441,7 @@ rp_transform <- function(w,
   #if(is.null(max_sum)) max_sum <- 1.01
   #if(is.null(min_box)) min_box <- rep(-Inf, length(tmp_w))
   #if(is.null(max_box)) max_box <- rep(Inf, length(tmp_w))
-  if(is.null(max_pos)) max_pos <- length(tmp_w)
+  if(is.null(max_pos) || max_pos > length(tmp_w)) max_pos <- length(tmp_w)
   #if(is.null(max_poslong)) max_pos_long <- length(tmp_w)
   #if(is.null(max_pos_short)) max_pos_short <- length(tmp_w)
   #if(is.null(leverage)) leverage <- Inf
