@@ -162,161 +162,104 @@ describing why ROI cannot be used here.
 
 ## Coverage Status
 
-**Baseline from `covr/coverage-2026-04-11.rds`: 84.06%** (overall; taken before
-the `test-charts-gensa-extra.R` and `test-charts-rp-extra.R` commits, so actual
-current coverage is slightly higher — ~84–85%).
+**Baseline from `covr/coverage-2026-04-11.rds`: 84.06%**
 
-### Per-file coverage (from RDS, lowest first)
+**Current (after this session's commits): 85.39%** (`covr/coverage-latest.rds`)
 
-| File | Lines | Covered | % | Uncovered lines |
-|------|------:|--------:|--:|-----------------|
-| `R/optimize.portfolio.R` | 2053 | 1458 | 71.0 | ~595 — see detail below |
-| `R/optFUN.R` | 713 | 576 | 80.8 | ~137 — see detail below |
-| `R/charts.risk.R` | 220 | 182 | 82.7 | 38 lines |
-| `R/charts.DE.R` | 161 | 134 | 83.2 | 27 lines |
-| `R/constrained_objective.R` | 319 | 267 | 83.7 | 52 lines |
-| `R/ac_ranking.R` | 74 | 62 | 83.8 | 12 lines |
-| `R/generics.R` | 591 | 496 | 83.9 | 95 lines |
-| `R/moment.functions.R` | 210 | 177 | 84.3 | 33 lines |
-| `R/trailingFUN.R` | 32 | 27 | 84.4 | 5 lines |
-| `R/charts.PSO.R` | 116 | 98 | 84.5 | 18 lines |
-| `R/stat.factor.model.R` | 168 | 143 | 85.1 | 25 lines |
-| `R/chart.Weights.R` | 21 | 18 | 85.7 | 3 lines (75, 76, 86) |
-| `R/charts.groups.R` | 56 | 48 | 85.7 | 8 lines |
-| `R/extract.efficient.frontier.R` | 285 | 249 | 87.4 | 36 lines |
-| `R/charts.multiple.R` | 81 | 71 | 87.7 | 10 lines |
-| `R/utils.R` | 18 | 16 | 88.9 | 2 lines |
-| `R/plotFrontiers.R` | 55 | 49 | 89.1 | 6 lines |
-| `R/constraint_fn_map.R` | 454 | 406 | 89.4 | 48 lines |
+### Per-file coverage (latest run, lowest first)
+
+| File | % |
+|------|--:|
+| `R/optimize.portfolio.R` | 75.1 |
+| `R/optFUN.R` | 81.3 |
+| `R/constrained_objective.R` | 83.9 |
+| `R/stat.factor.model.R` | 86.5 |
+| `R/charts.groups.R` | 86.7 |
+| `R/chart.Weights.R` | 87.5 |
+| `R/moment.functions.R` | 88.3 |
+| `R/charts.risk.R` | 88.3 |
+| `R/constraint_fn_map.R` | 88.5 |
+| `R/extract.efficient.frontier.R` | 88.6 |
+| `R/utils.R` | 88.9 |
+| `R/mult.layer.portfolio.R` | 89.2 |
+| `R/EntropyProg.R` | 89.2 |
+| `R/charts.multiple.R` | 89.5 |
+| `R/plotFrontiers.R` | 90.0 |
+| `R/chart.concentration.R` | 90.8 |
+| `R/charts.ROI.R` | 91.0 |
+| `R/charts.efficient.frontier.R` | 91.2 |
+| `R/charts.RP.R` | 92.0 |
+| `R/trailingFUN.R` | 92.1 |
+| `R/constraints.R` | 92.3 |
+| `R/random_portfolios.R` | 92.4 |
+| `R/generics.R` | 93.2 |
+| `R/inverse.volatility.weight.R` | 93.3 |
+| `R/extractstats.R` | 93.5 |
+| `R/objective.R` | 94.1 |
+| `R/custom.covRob.R` | 95.1 |
+| `R/charts.DE.R` | 95.3 |
+| `R/portfolio.R` | 95.7 |
+| `R/charts.PSO.R` | 95.9 |
+| `R/applyFUN.R` | 96.0 |
+| `R/charts.GenSA.R` | 96.2 |
+| `R/backtest.plot.R` | 96.5 |
+| `R/ac_ranking.R` | 100.0 |
+| `R/black_litterman.R` | 100.0 |
+| `R/chart.RiskReward.R` | 100.0 |
+| `R/constraints_ROI.R` | 100.0 |
+| `R/constraintsFUN.R` | 100.0 |
+| `R/equal.weight.R` | 100.0 |
+| `R/extractrisk.R` | 100.0 |
+| `R/meucci_moments.R` | 100.0 |
+| `R/meucci_ranking.R` | 100.0 |
+| `R/objectiveFUN.R` | 100.0 |
+| `R/opt.outputMvo.R` | 100.0 |
+| `R/utility.combine.R` | 100.0 |
 
 ---
 
 ## Next Steps (prioritized by bang-for-buck)
 
-### Priority 1 — Quick wins (small files, isolated branches)
+### Priority 1 — Already done this session (commit `8ae803e` + latest)
 
-#### A. `R/trailingFUN.R` — 5 uncovered lines (84.4% → ~100%)
-Uncovered: 40 (`nargs=NULL` when no `...`), 59 (vector R slicing), 73 (`FUNargs`
-not-list warning), 76 (no `FUNargs` warning), 82 (try-error message branch).
-- Line 40: call `trailingFUN` with `nargs=NULL` explicitly (no extra `...`)
-- Line 59: pass a plain numeric vector for `R` instead of a matrix
-- Line 73: pass `FUNargs` as a non-list (e.g. a character string)
-- Line 76: pass `FUNargs=NULL` with a function that has formals
-- Line 82: pass a `FUN` that throws an error (e.g. `function(...) stop("boom")`)
-**File:** `tests/testthat/test-ac-ranking-trailing.R` (new)
+- `test-ac-ranking-trailing.R` (20 tests) — `trailingFUN`, `ac_ranking`, `centroid.buckets` ✓
+- `test-charts-de-pso-extra.R` (21 tests) — `charts.DE`, `charts.PSO` ✓
+- `test-charts-risk-extra.R` (22 tests) — `charts.risk` ✓
+- `test-generics-print-summary.R` extended (+20 tests) — `generics.R` print branches ✓
 
-#### B. `R/ac_ranking.R` — 12 uncovered lines (83.8% → ~100%)
-- Line 35: `ac.ranking(R, order, max.value=0.5)` — `hasArg(max.value)` TRUE branch
-- Lines 220–237: `centroid.buckets(list(c(1,2), c(3,4)))` — entire function untested
-**File:** `tests/testthat/test-ac-ranking-trailing.R` (new, same file as above)
+### Priority 2 — Next targets (lowest coverage, clear branches)
 
-#### C. `R/chart.Weights.R` — 3 uncovered lines (85.7% → ~100%)
-Lines 75, 76, 86 — need to identify what branch these are (likely the
-`opt.list` method or a specific `las`/`xlab` parameter path).
-**File:** add a few tests to `tests/testthat/test-charts-roi.R` or a new file.
-
-### Priority 2 — Medium files with clear branch patterns
-
-#### D. `R/charts.PSO.R` — 18 uncovered lines (84.5% → ~95%)
-Same branch pattern as `charts.GenSA.R` (already covered in `test-charts-gensa-extra.R`):
-- Lines 5, 84, 87: stop() branches (wrong class, NULL R)
-- Lines 19, 30, 35: `xlab` non-NULL → minmargin=5; `las<=1` → bottommargin=minmargin; Inf constraints → ylim from weights
-- Lines 100–101, 123–125, 130–136: non-matching `return.col`/`risk.col` → applyFUN fallback
-- Lines 165, 178–179: `chart.assets=TRUE`; matrix neighbors in scatter
-**File:** `tests/testthat/test-charts-de-pso-extra.R` (new)
-
-#### E. `R/charts.DE.R` — 27 uncovered lines (83.2% → ~95%)
-Same pattern as PSO:
-- Lines 17, 102, 105: stop() branches
-- Lines 31, 42, 47: `xlab`, `las<=1`, Inf constraints
-- Lines 118–119, 141–154: applyFUN fallback branches in `chart.Scatter.DE`
-- Lines 203–211: matrix neighbors scatter; `chart.assets=TRUE`
-- Lines 250, 267, 273, 286–287: further scatter branches
-**File:** `tests/testthat/test-charts-de-pso-extra.R` (new, same file as PSO)
-
-#### F. `R/charts.risk.R` — 38 uncovered lines (82.7% → ~90%)
-Key uncovered branches:
-- Lines 62, 67, 72: `pct_contrib` risk type path in `chart.RiskBudget.optimize.portfolio`
-- Lines 101–102: neighbors as vector (scalar) path
-- Lines 127, 142–143: neighbors as matrix path; `pct_contrib` nbriskcol
-- Lines 182, 186: `chart.RiskBudget.opt.list` — regime.portfolios path
-- Lines 201–202, 230–231: `chart.RiskBudget.optimize.portfolio.rebalancing`
-- Lines 236, 244, 257, 269, 283, 288–289, 294: barplot risk budget branches
-- Lines 318, 333–334, 338–339: further rebalancing / absolute risk type branches
-**File:** `tests/testthat/test-charts-risk-extra.R` (new)
-
-#### G. `R/charts.groups.R` — 8 uncovered lines (85.7% → ~95%)
-Lines 39, 42, 51, 66–67, 115, 122, 127 — likely `xlab`/`las` parameter branches
-and a `neighbors` or `chart.assets` path.
-**File:** add to existing chart tests or new `test-charts-groups-extra.R`
-
-### Priority 3 — Larger files requiring more fixtures
-
-#### H. `R/generics.R` — 95 uncovered lines (83.9%)
-Key clusters:
-- Lines 241–250: `print.portfolio` — `box (unconstrained)` and `box (with shorting)` branches (need portfolios with `-Inf`/`Inf` box or short-selling constraints)
-- Lines 393–399, 435–441, 477–483, 519–525, 561–567, 603–609: `print.optimize.portfolio.*` — `objective_measures` second-element printing loop (need optimizations where `length(objective_measures[[i]]) > 1`)
-- Lines 657–663: another print variant
-- Lines 787–799: `summary` method branch with multiple objective measures
-- Lines 889–912: `print.optimize.portfolio.rebalancing` — deeper branches
-- Line 964: unknown branch
-**File:** add targeted tests to `tests/testthat/test-generics-print-summary.R`
-
-#### I. `R/moment.functions.R` — 33 uncovered lines (84.3%)
-Key clusters:
-- Lines 38, 49–50: `Return.clean()` try-error path in `set.portfolio.moments` (BUG-4 region)
-- Lines 77–104: GARCH/clean moment paths — `garch=TRUE` objective branch and `arguments.clean` branch; these require a portfolio with a `garch=TRUE` objective or `arguments.clean` set
-- Lines 198, 202–205, 209: `set.portfolio.moments` with `method="meucci"` — `hasArg` branches for `k`, `P`, `Mu`, `Sigma`, `Views`, `posterior_p`
-- Lines 216–222: another GARCH branch (duplicate of 77–104 pattern)
-- Lines 393, 477: isolated lines — need context
-**File:** extend `tests/testthat/test-moment-functions-extended.R`
-
-#### J. `R/constrained_objective.R` — 52 uncovered lines (83.7%)
-- Lines 24, 32, 42, 82, 100, 106: early validation branches (NULL portfolio, wrong class, etc.)
-- Lines 127–144: penalty weight branches
-- Lines 158, 182, 188, 196, 206–219: objective-type dispatch branches
-- Lines 229–242, 252–258, 268–277: further objective branches
-- Lines 352, 358, 371, 376: constraint penalty branches
-- Lines 580–602: CSM switch / BUG-6 area
-- Line 644: isolated line
+#### A. `R/constrained_objective.R` — 83.9%
+- Lines 24, 32, 42: NULL/wrong-class early stops
+- Lines 127–144: penalty weight branches (`enabled=FALSE` constraint penalties)
+- Lines 158, 182–219: objective-type dispatch (CSM, weight_concentration)
+- Lines 580–602: CSM switch arm (BUG-6 area)
 **File:** extend `tests/testthat/test-constrained-objective-branches.R`
 
-#### K. `R/optFUN.R` — 137 uncovered lines (80.8%)
-Very scattered across many functions. Key clusters:
-- Lines 20–21, 28: early error branches in small helpers
-- Lines 79–80, 141: `minvar_opt` / `etl_opt` edge cases
-- Lines 186–187, 194, 202–205: `qp_opt` / `maxret_opt` branches
-- Lines 229–230, 253, 263: further QP branches
-- Lines 298–306, 351–370: `gmv_opt` / `gmv_opt_toc` branches
-- Lines 389, 423–431, 444, 461–474, 482: ROI solver dispatch branches
-- Lines 527–535, 601–620, 637: more ROI/quadprog branches
-- Lines 692–720, 775–790, 805: `rp_opt` and random portfolio branches
-- Lines 856–887: `gmv_opt_ptc` (BUG-7 area — target-return path)
-- Lines 942–975, 1022–1047, 1103–1133, 1203–1204, 1410–1411: MILP and leverage branches
-**File:** extend `tests/testthat/test-optFUN-extended.R` and `test-optFUN-gaps.R`
+#### B. `R/stat.factor.model.R` — 86.5%
+- Need to identify uncovered clusters (likely `factor.model.BetaCoV` edge cases)
+**File:** extend or create `test-stat-factor-model-extra.R`
 
-#### L. `R/optimize.portfolio.R` — 595 uncovered lines (71.0%)
-The largest gap. Key clusters (deferred — most require complex solver setup):
-- Lines 32–107: `portfolio_spec` validation / early error branches
-- Lines 169–195: `constrained_objective` dispatch edge cases
-- Lines 225–265: weight normalization / position limit branches
-- Lines 285–356: penalty term branches
-- Lines 1800–2332: RGLPK MILP with position limits (large block — needs `Rglpk` and complex constraint setup)
-- Lines 2426–2600: ROI MILP branches
-- Lines 2690–2977: rebalancing internals
-- Lines 3049–3524: additional solver dispatch / error handling
-**File:** extend existing solver-specific test files; create `test-optimize-portfolio-milp-branches.R` for MILP cluster
+#### C. `R/charts.groups.R` — 86.7%
+- Lines ~39, 42, 51, 66–67, 115, 122, 127 — `xlab`/`las`/`neighbors`/`chart.assets` branches
+**File:** new `test-charts-groups-extra.R`
 
----
+#### D. `R/chart.Weights.R` — 87.5%
+- Lines 75, 76, 86 — likely `opt.list` method or `las`/`xlab` parameter path
+**File:** add tests to existing chart test file
 
-## Suggested Work Order
+#### E. `R/constraint_fn_map.R` — 88.5%
+- ~54 uncovered lines — dispatch branches for rarely-used constraint types
+**File:** extend `test-constraint-fn-map.R`
 
-1. **A+B** (`trailingFUN` + `ac_ranking`) — single new file, ~15 tests, high yield
-2. **D+E** (`charts.PSO` + `charts.DE`) — single new file, ~20 tests, mirrors already-written GenSA/RP pattern
-3. **F** (`charts.risk`) — moderate complexity, ~15 tests
-4. **C+G** (`chart.Weights` L75/76/86, `charts.groups`) — small additions to existing files
-5. **H** (`generics.R`) — extend existing file, target the print-loop branches
-6. **I** (`moment.functions`) — extend existing file, target meucci `hasArg` branches first (avoid BUG-3/4 regions)
-7. **J** (`constrained_objective`) — extend existing file
-8. **K** (`optFUN`) — extend existing files, work through clusters
-9. **L** (`optimize.portfolio`) — largest file, tackle in sub-passes by line cluster
+#### F. `R/extract.efficient.frontier.R` — 88.6%
+- ~33 uncovered lines — efficient frontier extraction edge cases
+**File:** extend existing EF test file
+
+### Priority 3 — Large files (deferred)
+
+#### G. `R/optFUN.R` — 81.3%
+- ~134 uncovered lines (see prior plan detail for clusters)
+
+#### H. `R/optimize.portfolio.R` — 75.1%
+- Largest gap — most require complex solver/MILP setup; tackle in sub-passes
