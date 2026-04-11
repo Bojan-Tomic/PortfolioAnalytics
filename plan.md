@@ -3,8 +3,9 @@
 > **History note:** All completed bug fixes, issue triage, and earlier coverage
 > work are recorded in commit `6e5ef96` and earlier. Coverage test files from
 > the prior session are in commits `bc28c87`–`a127fa0`. R CMD check fixes are
-> in commit `bb2f17e`. Bug fixes (BUG-1 through BUG-8) are in the current
-> working commit.
+> in commit `bb2f17e`. Bug fixes (BUG-1 through BUG-8) are in commit `c1daf38`.
+> Session 2 coverage work (charts, stat.factor.model, fn_map, EF, constrained_objective,
+> optFUN, moment.functions, utils) is in commits `b9db2a7`–`5d02fae`.
 
 ---
 
@@ -85,50 +86,66 @@
 
 ## Coverage Status
 
-**Baseline from `covr/coverage-2026-04-11.rds`: 84.06%**
+**Baseline from `covr/coverage-2026-04-11.rds`: 85.24% R-only**
 
-**After bug-fix session: ~85.39%** (coverage runs pending after fixes)
+**After session 2 (`covr/coverage-2026-04-11-session2.rds`): 86.42% R-only (+1.18 pp)**
 
-### Per-file coverage (latest run, lowest first)
+Note: overall `percent_coverage()` includes C files; the gcov stamp-mismatch
+causes C coverage to read 0% in the session-2 run even though the C code is
+unchanged.  R-only comparison is the accurate measure of progress.
+
+### Session 2 test files added / extended
+
+| File | Status | Tests |
+|------|--------|------:|
+| `test-charts-groups-extra.R` | NEW | 23 |
+| `test-chart-weights-extra.R` | NEW | 17 |
+| `test-stat-factor-model-extra.R` | NEW | 31 |
+| `test-fn-map.R` | EXTENDED | +233 lines |
+| `test-efficient-frontier.R` | EXTENDED | +262 lines |
+| `test-constrained-objective-branches.R` | EXTENDED | 49 total |
+| `test-optFUN-gaps.R` | EXTENDED | 31 total |
+| `test-moment-utils-gaps.R` | NEW | 43 |
+
+### Per-file coverage (session 2 run, lowest first)
 
 | File | % |
 |------|--:|
-| `R/optimize.portfolio.R` | 75.1 |
-| `R/optFUN.R` | 81.3 |
-| `R/constrained_objective.R` | 83.9 |
-| `R/stat.factor.model.R` | 86.5 |
-| `R/charts.groups.R` | 86.7 |
-| `R/chart.Weights.R` | 87.5 |
-| `R/moment.functions.R` | 88.3 |
-| `R/charts.risk.R` | 88.3 |
-| `R/constraint_fn_map.R` | 88.5 |
-| `R/extract.efficient.frontier.R` | 88.6 |
-| `R/utils.R` | 88.9 |
-| `R/mult.layer.portfolio.R` | 89.2 |
-| `R/EntropyProg.R` | 89.2 |
-| `R/charts.multiple.R` | 89.5 |
-| `R/plotFrontiers.R` | 90.0 |
-| `R/chart.concentration.R` | 90.8 |
-| `R/charts.ROI.R` | 91.0 |
-| `R/charts.efficient.frontier.R` | 91.2 |
-| `R/charts.RP.R` | 92.0 |
-| `R/trailingFUN.R` | 92.1 |
-| `R/constraints.R` | 92.3 |
-| `R/random_portfolios.R` | 92.4 |
-| `R/generics.R` | 93.2 |
-| `R/inverse.volatility.weight.R` | 93.3 |
-| `R/extractstats.R` | 93.5 |
-| `R/objective.R` | 94.1 |
-| `R/custom.covRob.R` | 95.1 |
-| `R/charts.DE.R` | 95.3 |
-| `R/portfolio.R` | 95.7 |
-| `R/charts.PSO.R` | 95.9 |
-| `R/applyFUN.R` | 96.0 |
-| `R/charts.GenSA.R` | 96.2 |
-| `R/backtest.plot.R` | 96.5 |
+| `R/optimize.portfolio.R` | 71.0 |
+| `R/optFUN.R` | 83.6 |
+| `R/constrained_objective.R` | 85.7 |
+| `R/charts.risk.R` | 86.4 |
+| `R/charts.multiple.R` | 87.7 |
+| `R/plotFrontiers.R` | 89.1 |
+| `R/charts.efficient.frontier.R` | 90.5 |
+| `R/chart.concentration.R` | 90.6 |
+| `R/trailingFUN.R` | 90.6 |
+| `R/constraint_fn_map.R` | 90.7 |
+| `R/EntropyProg.R` | 90.8 |
+| `R/mult.layer.portfolio.R` | 90.9 |
+| `R/charts.ROI.R` | 91.5 |
+| `R/extract.efficient.frontier.R` | 91.6 |
+| `R/charts.RP.R` | 92.2 |
+| `R/custom.covRob.R` | 92.2 |
+| `R/charts.groups.R` | 92.9 |
+| `R/random_portfolios.R` | 92.9 |
+| `R/constraints.R` | 93.4 |
+| `R/generics.R` | 93.4 |
+| `R/extractstats.R` | 94.2 |
+| `R/moment.functions.R` | 94.3 |
+| `R/utils.R` | 94.4 |
+| `R/objective.R` | 94.7 |
+| `R/charts.DE.R` | 95.0 |
+| `R/inverse.volatility.weight.R` | 95.5 |
+| `R/applyFUN.R` | 95.6 |
+| `R/charts.PSO.R` | 95.7 |
+| `R/charts.GenSA.R` | 95.8 |
+| `R/portfolio.R` | 96.3 |
+| `R/backtest.plot.R` | 97.6 |
 | `R/ac_ranking.R` | 100.0 |
 | `R/black_litterman.R` | 100.0 |
 | `R/chart.RiskReward.R` | 100.0 |
+| `R/chart.Weights.R` | 100.0 |
 | `R/constraints_ROI.R` | 100.0 |
 | `R/constraintsFUN.R` | 100.0 |
 | `R/equal.weight.R` | 100.0 |
@@ -137,55 +154,40 @@
 | `R/meucci_ranking.R` | 100.0 |
 | `R/objectiveFUN.R` | 100.0 |
 | `R/opt.outputMvo.R` | 100.0 |
+| `R/stat.factor.model.R` | 100.0 |
 | `R/utility.combine.R` | 100.0 |
 
 ---
 
 ## Next Steps (prioritized by bang-for-buck)
 
-### Priority 1 — Already done (bugs fixed this session)
+### Priority 1 — Completed (session 2)
 
-- BUG-1: `extractStats.optimize.portfolio.parallel` wrong iteration variable ✓
-- BUG-2: `custom.covRob.Mcd` `match.call()` symbol issue ✓
-- BUG-3: `set.portfolio.moments()` `match.call()` for `posterior_p` ✓
-- BUG-4: `CCCgarch.MM()` inverted `clean` logic ✓
-- BUG-5: `optimize.portfolio.rebalancing()` crash with `regime.portfolios` ✓
-- BUG-6: `constrained_objective_v2()` CSM arm leaves `fun` undefined ✓
-- BUG-7: `gmv_opt_ptc()` target-return `rhs = 1 + target` ✓
-- BUG-8: `summary.optimize.portfolio.parallel` ROI vector indexing crash ✓
+- `chart.Weights.R`: 87.5% → 100.0% ✓
+- `stat.factor.model.R`: 86.5% → 100.0% ✓
+- `charts.groups.R`: 86.7% → 92.9% ✓
+- `constrained_objective.R`: 83.9% → 85.7% ✓
+- `optFUN.R`: 81.3% → 83.6% ✓
+- `constraint_fn_map.R`: 88.5% → 90.7% ✓
+- `extract.efficient.frontier.R`: 88.6% → 91.6% ✓
+- `moment.functions.R`: 88.3% → 94.3% ✓
+- `utils.R`: 88.9% → 94.4% ✓
 
-### Priority 2 — Next targets (lowest coverage, clear branches)
+### Priority 2 — Next targets (lowest R coverage)
 
-#### A. `R/constrained_objective.R` — 83.9%
-- Lines 24, 32, 42: NULL/wrong-class early stops
-- Lines 127–144: penalty weight branches (`enabled=FALSE` constraint penalties)
-- Lines 158, 182–219: objective-type dispatch (CSM, weight_concentration)
-**File:** extend `tests/testthat/test-constrained-objective-branches.R`
+#### A. `R/optimize.portfolio.R` — 71.0% (~135 uncovered lines)
+- Largest single gap; most branches require complex solver/MILP setup
+- Sub-targets: rebalancing edge cases, regime-switching paths, parallel paths
 
-#### B. `R/stat.factor.model.R` — 86.5%
-- Need to identify uncovered clusters (likely `factor.model.BetaCoV` edge cases)
-**File:** extend or create `test-stat-factor-model-extra.R`
+#### B. `R/optFUN.R` — 83.6% (~90 uncovered lines)
+- Remaining: factor-exposure constraint blocks, try-error stop branches,
+  `max_sr_opt` edge cases not yet hit
 
-#### C. `R/charts.groups.R` — 86.7%
-- Lines ~39, 42, 51, 66–67, 115, 122, 127 — `xlab`/`las`/`neighbors`/`chart.assets` branches
-**File:** new `test-charts-groups-extra.R`
+#### C. `R/constrained_objective.R` — 85.7% (~65 uncovered lines)
+- Remaining: penalty-weight enabled=FALSE branches, some CSM/weight_conc paths
 
-#### D. `R/chart.Weights.R` — 87.5%
-- Lines 75, 76, 86 — likely `opt.list` method or `las`/`xlab` parameter path
-**File:** add tests to existing chart test file
+#### D. `R/charts.risk.R` — 86.4%
+- Uncovered: some `chart.StackedBar` and `chart.GroupWeights` parameter paths
 
-#### E. `R/constraint_fn_map.R` — 88.5%
-- ~54 uncovered lines — dispatch branches for rarely-used constraint types
-**File:** extend `test-constraint-fn-map.R`
-
-#### F. `R/extract.efficient.frontier.R` — 88.6%
-- ~33 uncovered lines — efficient frontier extraction edge cases
-**File:** extend existing EF test file
-
-### Priority 3 — Large files (deferred)
-
-#### G. `R/optFUN.R` — 81.3%
-- ~134 uncovered lines (see prior plan detail for clusters)
-
-#### H. `R/optimize.portfolio.R` — 75.1%
-- Largest gap — most require complex solver/MILP setup; tackle in sub-passes
+#### E. `R/charts.multiple.R` — 87.7%
+- Uncovered: various optional argument branches in multi-chart functions
