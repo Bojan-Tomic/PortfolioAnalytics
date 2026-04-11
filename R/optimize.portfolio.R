@@ -3195,19 +3195,29 @@ optimize.portfolio.rebalancing_v1 <- function(R, constraints, optimize_method = 
   if (is.null(training_period)) {
     if (nrow(R) < 36) training_period <- nrow(R) else training_period <- 36
   }
+
+  # Build .export vector for foreach: include any user-supplied momentFUN so
+  # that custom moment functions defined in the calling environment are
+  # available on parallel workers. Fixes issue #22.
+  dotargs_v1 <- list(...)
+  .export_funs <- character(0)
+  if (!is.null(dotargs_v1$momentFUN) && is.character(dotargs_v1$momentFUN)) {
+    .export_funs <- dotargs_v1$momentFUN
+  }
+
   if (is.null(rolling_window)) {
     # define the index endpoints of our periods
     ep.i <- endpoints(R, on = rebalance_on)[which(endpoints(R, on = rebalance_on) >= training_period)]
     # now apply optimize.portfolio to the periods, in parallel if available
     ep <- ep.i[1]
-    out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics") %dopar% {
+    out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics", .export = .export_funs) %dopar% {
       optimize.portfolio(R[1:ep, ], constraints = constraints, optimize_method = optimize_method, search_size = search_size, trace = trace, rp = rp, parallel = FALSE, ... = ...)
     }
   } else {
     # define the index endpoints of our periods
     ep.i <- endpoints(R, on = rebalance_on)[which(endpoints(R, on = rebalance_on) >= training_period)]
     # now apply optimize.portfolio to the periods, in parallel if available
-    out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics") %dopar% {
+    out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics", .export = .export_funs) %dopar% {
       optimize.portfolio(R[(ifelse(ep - rolling_window >= 1, ep - rolling_window, 1)):ep, ], constraints = constraints, optimize_method = optimize_method, search_size = search_size, trace = trace, rp = rp, parallel = FALSE, ... = ...)
     }
   }
@@ -3460,6 +3470,15 @@ optimize.portfolio.rebalancing <- function(R, portfolio = NULL, constraints = NU
     if (nrow(R) < 36) training_period <- nrow(R) else training_period <- 36
   }
 
+  # Build .export vector for foreach: include any user-supplied momentFUN so
+  # that custom moment functions defined in the calling environment are
+  # available on parallel workers. Fixes issue #22.
+  dotargs_v2 <- list(...)
+  .export_funs <- character(0)
+  if (!is.null(dotargs_v2$momentFUN) && is.character(dotargs_v2$momentFUN)) {
+    .export_funs <- dotargs_v2$momentFUN
+  }
+
   # turnover weight_initial is previous time point optimal weight
   turnover_idx <- which(sapply(portfolio$constraints, function(x) x$type == "turnover"))
   if (length(turnover_idx) > 0) {
@@ -3475,7 +3494,7 @@ optimize.portfolio.rebalancing <- function(R, portfolio = NULL, constraints = NU
       ep.i <- endpoints(R, on = rebalance_on)[which(endpoints(R, on = rebalance_on) >= training_period)]
       # now apply optimize.portfolio to the periods, in parallel if available
       ep <- ep.i[1]
-      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics") %dopar% {
+      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics", .export = .export_funs) %dopar% {
         opt <- optimize.portfolio(R[1:ep, ], portfolio = portfolio, optimize_method = optimize_method, search_size = search_size, trace = trace, rp = rp, parallel = FALSE, ... = ...)
         portfolio$constraints[[turnover_idx]]$weight_initial <- opt$weights
         opt
@@ -3484,7 +3503,7 @@ optimize.portfolio.rebalancing <- function(R, portfolio = NULL, constraints = NU
       # define the index endpoints of our periods
       ep.i <- endpoints(R, on = rebalance_on)[which(endpoints(R, on = rebalance_on) >= training_period)]
       # now apply optimize.portfolio to the periods, in parallel if available
-      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics") %dopar% {
+      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics", .export = .export_funs) %dopar% {
         opt <- optimize.portfolio(R[(ifelse(ep - rolling_window >= 1, ep - rolling_window, 1)):ep, ], portfolio = portfolio, optimize_method = optimize_method, search_size = search_size, trace = trace, rp = rp, parallel = FALSE, ... = ...)
         portfolio$constraints[[turnover_idx]]$weight_initial <- opt$weights
         opt
@@ -3496,14 +3515,14 @@ optimize.portfolio.rebalancing <- function(R, portfolio = NULL, constraints = NU
       ep.i <- endpoints(R, on = rebalance_on)[which(endpoints(R, on = rebalance_on) >= training_period)]
       # now apply optimize.portfolio to the periods, in parallel if available
       ep <- ep.i[1]
-      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics") %dopar% {
+      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics", .export = .export_funs) %dopar% {
         optimize.portfolio(R[1:ep, ], portfolio = portfolio, optimize_method = optimize_method, search_size = search_size, trace = trace, rp = rp, parallel = FALSE, ... = ...)
       }
     } else {
       # define the index endpoints of our periods
       ep.i <- endpoints(R, on = rebalance_on)[which(endpoints(R, on = rebalance_on) >= training_period)]
       # now apply optimize.portfolio to the periods, in parallel if available
-      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics") %dopar% {
+      out_list <- foreach::foreach(ep = iterators::iter(ep.i), .errorhandling = "pass", .packages = "PortfolioAnalytics", .export = .export_funs) %dopar% {
         optimize.portfolio(R[(ifelse(ep - rolling_window >= 1, ep - rolling_window, 1)):ep, ], portfolio = portfolio, optimize_method = optimize_method, search_size = search_size, trace = trace, rp = rp, parallel = FALSE, ... = ...)
       }
     }
