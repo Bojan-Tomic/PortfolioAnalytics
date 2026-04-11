@@ -2,7 +2,7 @@
 
 > **History note:** All completed bug fixes, issue triage, and earlier coverage
 > work are recorded in commit `6e5ef96` and earlier. The coverage test files
-> added after that point are in commits `bc28c87`–`fd1ec32`.
+> added after that point are in commits `bc28c87`–`d046d29`.
 
 ---
 
@@ -118,6 +118,24 @@ in the equality constraint construction.
 **Regression test:** `tests/testthat/test-optFUN-gaps.R` — the "non-NA target"
 test is guarded by `skip_if` with a comment "known formulation issue".
 
+### BUG-8 — `summary.optimize.portfolio.parallel`: crashes when nodes use ROI solver
+**File:** `R/generics.R`, `summary.optimize.portfolio.parallel()`, lines 1077–1080  
+**Symptom:** Calling `summary()` on the result of `optimize.portfolio.parallel()`
+with `optimize_method="ROI"` throws: *incorrect number of dimensions*.  
+**Root cause:** `extractStats()` on a single ROI optimization result returns a
+**named numeric vector** (not a matrix). The summary method then calls
+`tmp[which.min(tmp[,"out"]),]` which requires a matrix — the `[,"out"]`
+column-selector fails on a vector.  By contrast, `random`/`DEoptim`/`pso`
+results (which use `trace=TRUE`) return a multi-row matrix, so those solvers work.  
+**Fix:** Wrap the `extractStats(x)` result in `as.matrix()` (or `rbind()`) before
+applying `[,]` indexing; or add `if (is.vector(tmp)) tmp <- t(as.matrix(tmp))`
+before line 1079.  
+**Workaround:** Use `optimize_method="random"` (with `trace=TRUE`) or `"DEoptim"`
+when calling `optimize.portfolio.parallel()` if you need `summary()` to work.  
+**Regression test:** `tests/testthat/test-generics-print-summary.R` — the parallel
+section uses `optimize_method="random"` as a workaround; includes a comment
+describing why ROI cannot be used here.
+
 ---
 
 ## Remaining Open Items
@@ -130,26 +148,27 @@ test is guarded by `skip_if` with a comment "known formulation issue".
 
 ### Coverage Work
 
-Current baseline (from `covr/coverage-2026-04-11.rds`): **82.63%**
+Current baseline (from `covr/coverage-2026-04-11.rds`): **82.63%** (pre-session)
 
-Lowest-coverage files remaining:
+New test files added this session (commits `6691ba0`, `d046d29`):
+- `test-generics-print-summary.R` (33 tests) — covers all 122 uncovered exprs in `R/generics.R`
+- `test-opt-output-concentration.R` (16 tests) — covers `R/opt.outputMvo.R` and `R/chart.concentration.R` branches
+- `test-optFUN-milp-toc-leverage.R` (26 tests) — covers `maxret_milp_opt`, `etl_milp_opt`, `gmv_opt_toc`, `gmv_opt_leverage` in `R/optFUN.R`
+- `test-optimize-portfolio-v1-gensa-portflist.R` (28 tests) — covers `optimize.portfolio_v1`, GenSA path, and `portfolio.list` dispatch in `R/optimize.portfolio.R`
 
-| File | Coverage | Uncovered lines |
-|------|----------|-----------------|
-| `R/optimize.portfolio.R` | 74.44% | ~400 |
-| `R/optFUN.R` | 77.08% | ~157 |
-| `R/chart.concentration.R` | 77.55% | ~22 |
-| `R/generics.R` | 78.71% | ~122 |
+Lowest-coverage files remaining (estimates — run `covr::package_coverage()` for updated numbers):
+
+| File | Pre-session coverage | Uncovered exprs |
+|------|---------------------|-----------------|
+| `R/optimize.portfolio.R` | 74.44% | ~300 (improved) |
+| `R/optFUN.R` | 77.08% | ~50 (improved) |
+| `R/chart.concentration.R` | 77.55% | ~5 (improved) |
+| `R/generics.R` | 78.71% | ~0 (fully covered) |
 | `R/charts.RP.R` | 80.25% | ~32 |
-| `R/opt.outputMvo.R` | 80.77% | ~5 |
+| `R/opt.outputMvo.R` | 80.77% | ~0 (improved) |
 | `R/charts.GenSA.R` | 82.05% | ~14 |
 
-Known untested areas within the above (preliminary, awaiting deeper analysis):
-- `R/optimize.portfolio.R`: GenSA solver path; `optimize_method="invol"` and
-  `"eqwt"` dispatch; `print.*`/`summary.*` S3 methods for opt result objects;
-  rebalancing with `training_period` edge cases
-- `R/generics.R`: `print.*` methods for constraint/objective/portfolio objects;
-  `extractGroups` dispatch branches; `extractObjectiveMeasures` non-identical
-  objectives branch (line ~625)
-- `R/optFUN.R`: remaining gaps after `test-optFUN-gaps.R`; MILP helper
-  `etl_milp_opt` internal branches
+Remaining known untested areas:
+- `R/optimize.portfolio.R`: Rglpk MILP with position limits (L1800–L2312); `optimize_method="invol"` and `"eqwt"` dispatch; `regime.portfolios` switching path (BUG-5 blocker); rebalancing edge cases
+- `R/charts.RP.R`: ~32 uncovered exprs in `chart.GroupWeights` and related
+- `R/charts.GenSA.R`: ~14 uncovered exprs
