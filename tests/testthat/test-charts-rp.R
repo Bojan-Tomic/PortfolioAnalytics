@@ -41,6 +41,21 @@ opt_group <- tryCatch({
                      search_size     = 200)
 }, error = function(e) NULL)
 
+# Category-labelled result for chart.GroupWeights grouping="category" branch
+opt_category <- tryCatch({
+  p_c <- portfolio.spec(
+    assets           = colnames(edhec4),
+    category_labels  = c("GroupA", "GroupA", "GroupB", "GroupB")
+  )
+  p_c <- add.constraint(p_c, type = "weight_sum", min_sum = 0.99, max_sum = 1.01)
+  p_c <- add.constraint(p_c, type = "box", min = 0.05, max = 0.60)
+  p_c <- add.objective(p_c, type = "risk", name = "ES")
+  set.seed(42)
+  optimize.portfolio(edhec4, p_c,
+                     optimize_method = "random",
+                     search_size     = 200)
+}, error = function(e) NULL)
+
 # opt.list for chart.Weights.opt.list and chart.RiskReward.opt.list.
 # Two portfolios with different risk objectives so that
 # extractObjectiveMeasures.opt.list takes its "union all objectives" branch
@@ -224,6 +239,53 @@ test_that("chart.GroupWeights: rejects non-optimize.portfolio object with inform
   expect_error(
     chart.GroupWeights(list()),
     regexp = "object must be of class 'optimize.portfolio'"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Tests: R/charts.groups.R — chart.GroupWeights grouping="category" branches
+# ---------------------------------------------------------------------------
+
+test_that("chart.GroupWeights: category line plot runs without error", {
+  skip_if(is.null(opt_category), "opt_category fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  expect_no_error(
+    chart.GroupWeights(opt_category, grouping = "category", plot.type = "line")
+  )
+})
+
+test_that("chart.GroupWeights: category barplot runs without error", {
+  skip_if(is.null(opt_category), "opt_category fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  expect_no_error(
+    chart.GroupWeights(opt_category, grouping = "category", plot.type = "barplot")
+  )
+})
+
+test_that("chart.GroupWeights: category line with xlab covers minmargin=5 branch", {
+  skip_if(is.null(opt_category), "opt_category fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  expect_no_error(
+    chart.GroupWeights(opt_category, grouping = "category", plot.type = "line",
+                       xlab = "Category")
+  )
+})
+
+test_that("chart.GroupWeights: las=0 covers bottommargin=minmargin branch", {
+  skip_if(is.null(opt_category), "opt_category fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  expect_no_error(
+    chart.GroupWeights(opt_category, grouping = "category", plot.type = "line",
+                       las = 0)
+  )
+})
+
+test_that("chart.GroupWeights: main='' covers topmargin=1 branch", {
+  skip_if(is.null(opt_category), "opt_category fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  expect_no_error(
+    chart.GroupWeights(opt_category, grouping = "category", plot.type = "line",
+                       main = "")
   )
 })
 
