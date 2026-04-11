@@ -90,6 +90,8 @@
 
 **After session 2 (`covr/coverage-2026-04-11-session2.rds`): 86.42% R-only (+1.18 pp)**
 
+**After session 3/4 (`tests/testthat/test-optimize-portfolio-gaps.R` added): 87.01% R-only (+0.59 pp)**
+
 Note: overall `percent_coverage()` includes C files; the gcov stamp-mismatch
 causes C coverage to read 0% in the session-2 run even though the C code is
 unchanged.  R-only comparison is the accurate measure of progress.
@@ -107,11 +109,11 @@ unchanged.  R-only comparison is the accurate measure of progress.
 | `test-optFUN-gaps.R` | EXTENDED | 31 total |
 | `test-moment-utils-gaps.R` | NEW | 43 |
 
-### Per-file coverage (session 2 run, lowest first)
+### Per-file coverage (session 4 run, lowest first)
 
 | File | % |
 |------|--:|
-| `R/optimize.portfolio.R` | 71.0 |
+| `R/optimize.portfolio.R` | 72.6 |
 | `R/optFUN.R` | 83.6 |
 | `R/constrained_objective.R` | 85.7 |
 | `R/charts.risk.R` | 86.4 |
@@ -175,7 +177,7 @@ unchanged.  R-only comparison is the accurate measure of progress.
 
 ### Priority 2 — Next targets (lowest R coverage)
 
-#### A. `R/optimize.portfolio.R` — 71.0% (~135 uncovered lines)
+#### A. `R/optimize.portfolio.R` — 72.6% (~120 uncovered lines)
 - Largest single gap; most branches require complex solver/MILP setup
 - Sub-targets: rebalancing edge cases, regime-switching paths, parallel paths
 
