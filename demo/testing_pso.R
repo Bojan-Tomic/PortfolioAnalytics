@@ -19,7 +19,7 @@ funds <- names(R)
 mu.port <- mean(colMeans(R))
 
 #' Define problem with constraints and objectives
-gen.constr <- constraint(assets = funds, min=-2, max=2, min_sum=0.99, max_sum=1.01, risk_aversion=1)
+gen.constr <- constraint_v1(assets = funds, min=-2, max=2, min_sum=0.99, max_sum=1.01, risk_aversion=1)
 gen.constr <- add.objective(constraints=gen.constr, type="return", name="mean", enabled=FALSE, target=mu.port)
 gen.constr <- add.objective(constraints=gen.constr, type="risk", name="var", enabled=FALSE, risk_aversion=10)
 gen.constr <- add.objective(constraints=gen.constr, type="risk", name="CVaR", enabled=FALSE)

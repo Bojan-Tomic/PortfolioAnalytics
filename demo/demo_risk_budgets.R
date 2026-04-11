@@ -78,7 +78,7 @@ chart.RiskBudget(rbStdDev.DE, risk.type="pct_contrib")
 rp <- random_portfolios(init.portf, 5000)
 
 #' Run out of sample backtest with yearly rebalancing.
-SDRB.opt.bt <- optimize.portfolio.rebalancing(R, SDRB.portf,
+SDRB.opt.bt <- optimize.portfolio.rebalancing(R, rbStdDev.portf,
                                               optimize_method="random", 
                                               rp=rp,
                                               trace=TRUE, 

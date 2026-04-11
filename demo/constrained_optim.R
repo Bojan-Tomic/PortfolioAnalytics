@@ -12,7 +12,7 @@ require(DEoptim)
 data(edhec)
 
 #' Set up the constraints and objectives to define the optimization problem
-constraints <- constraint(assets = colnames(edhec[, 1:10]), min = 0.01, 
+constraints <- constraint_v1(assets = colnames(edhec[, 1:10]), min = 0.01, 
                           max = 0.4, min_sum=0.99, max_sum=1.01, 
                           weight_seq = generatesequence())
 

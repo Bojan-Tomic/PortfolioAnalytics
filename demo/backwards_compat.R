@@ -19,7 +19,7 @@ ret <- edhec[, 1:4]
 funds <- colnames(ret)
 
 #' Set up constraint object using v1 specification
-gen.constr <- constraint(assets=funds, min=0, max=0.55, min_sum=0.99, max_sum=1.01, 
+gen.constr <- constraint_v1(assets=funds, min=0, max=0.55, min_sum=0.99, max_sum=1.01, 
                          weight_seq=generatesequence(min=0, max=0.55, by=0.002))
 class(gen.constr)
 
