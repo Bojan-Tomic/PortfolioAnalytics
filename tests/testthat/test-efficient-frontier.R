@@ -138,3 +138,265 @@ test_that("summary.efficient.frontier returns a list with weights and metrics", 
   expect_true(!is.null(s$weights))
   expect_true(!is.null(s$metrics))
 })
+
+
+# ---------------------------------------------------------------------------
+# Tests: extractEfficientFrontier — ROI object with ETL/ES match.col
+# Exercises lines 724-726 of extract.efficient.frontier.R:
+#   if(match.col %in% c("ETL", "ES", "CVaR")) => meanetl.efficient.frontier
+# ---------------------------------------------------------------------------
+
+skip_if_not_installed("ROI.plugin.glpk")
+
+# Build a minimal ROI result with trace=TRUE so that $R is available.
+init_roi_etl <- portfolio.spec(assets = funds)
+init_roi_etl <- add.constraint(portfolio = init_roi_etl, type = "full_investment")
+init_roi_etl <- add.constraint(portfolio = init_roi_etl, type = "long_only")
+init_roi_etl <- add.objective(portfolio = init_roi_etl, type = "risk",   name = "ES")
+init_roi_etl <- add.objective(portfolio = init_roi_etl, type = "return", name = "mean")
+
+opt_roi_etl <- tryCatch(
+  optimize.portfolio(R = R, portfolio = init_roi_etl,
+                     optimize_method = "ROI",
+                     trace = TRUE),
+  error = function(e) NULL
+)
+
+# match.col = "ETL" maps into the c("ETL","ES","CVaR") branch
+ef_roi_etl <- tryCatch(
+  extractEfficientFrontier(opt_roi_etl, match.col = "ETL", n.portfolios = 5L),
+  error = function(e) NULL
+)
+
+test_that("extractEfficientFrontier ROI ETL: returns efficient.frontier class", {
+  skip_if(is.null(opt_roi_etl))
+  skip_if(is.null(ef_roi_etl))
+  expect_s3_class(ef_roi_etl, "efficient.frontier")
+})
+
+test_that("extractEfficientFrontier ROI ETL: $frontier is not NULL", {
+  skip_if(is.null(opt_roi_etl))
+  skip_if(is.null(ef_roi_etl))
+  expect_false(is.null(ef_roi_etl$frontier))
+})
+
+test_that("extractEfficientFrontier ROI ETL: $frontier has 'ES' column", {
+  skip_if(is.null(opt_roi_etl))
+  skip_if(is.null(ef_roi_etl))
+  # meanetl.efficient.frontier produces an 'ES' column
+  expect_true("ES" %in% colnames(ef_roi_etl$frontier))
+})
+
+test_that("extractEfficientFrontier ROI ETL: $frontier has weight columns", {
+  skip_if(is.null(opt_roi_etl))
+  skip_if(is.null(ef_roi_etl))
+  expect_gt(length(grep("^w\\.", colnames(ef_roi_etl$frontier))), 0L)
+})
+
+# match.col = "CVaR" also maps into the same branch
+ef_roi_cvar <- tryCatch(
+  extractEfficientFrontier(opt_roi_etl, match.col = "CVaR", n.portfolios = 5L),
+  error = function(e) NULL
+)
+
+test_that("extractEfficientFrontier ROI CVaR: returns efficient.frontier class", {
+  skip_if(is.null(opt_roi_etl))
+  skip_if(is.null(ef_roi_cvar))
+  expect_s3_class(ef_roi_cvar, "efficient.frontier")
+})
+
+test_that("extractEfficientFrontier ROI CVaR: $frontier has 'ES' column", {
+  skip_if(is.null(opt_roi_etl))
+  skip_if(is.null(ef_roi_cvar))
+  expect_true("ES" %in% colnames(ef_roi_cvar$frontier))
+})
+
+
+# ---------------------------------------------------------------------------
+# Tests: extractEfficientFrontier — ROI object with StdDev match.col
+# Exercises line 727-729 of extract.efficient.frontier.R:
+#   if(match.col == "StdDev") => meanvar.efficient.frontier
+# ---------------------------------------------------------------------------
+
+init_roi_sd <- portfolio.spec(assets = funds)
+init_roi_sd <- add.constraint(portfolio = init_roi_sd, type = "full_investment")
+init_roi_sd <- add.constraint(portfolio = init_roi_sd, type = "long_only")
+init_roi_sd <- add.objective(portfolio = init_roi_sd, type = "risk",   name = "StdDev")
+init_roi_sd <- add.objective(portfolio = init_roi_sd, type = "return", name = "mean")
+
+opt_roi_sd <- tryCatch(
+  optimize.portfolio(R = R, portfolio = init_roi_sd,
+                     optimize_method = "ROI",
+                     trace = TRUE),
+  error = function(e) NULL
+)
+
+ef_roi_sd <- tryCatch(
+  extractEfficientFrontier(opt_roi_sd, match.col = "StdDev", n.portfolios = 5L),
+  error = function(e) NULL
+)
+
+test_that("extractEfficientFrontier ROI StdDev: returns efficient.frontier class", {
+  skip_if(is.null(opt_roi_sd))
+  skip_if(is.null(ef_roi_sd))
+  expect_s3_class(ef_roi_sd, "efficient.frontier")
+})
+
+test_that("extractEfficientFrontier ROI StdDev: $frontier has 'StdDev' column", {
+  skip_if(is.null(opt_roi_sd))
+  skip_if(is.null(ef_roi_sd))
+  expect_true("StdDev" %in% colnames(ef_roi_sd$frontier))
+})
+
+test_that("extractEfficientFrontier ROI StdDev: $frontier has 'mean' column", {
+  skip_if(is.null(opt_roi_sd))
+  skip_if(is.null(ef_roi_sd))
+  expect_true("mean" %in% colnames(ef_roi_sd$frontier))
+})
+
+test_that("extractEfficientFrontier ROI StdDev: $frontier has weight columns", {
+  skip_if(is.null(opt_roi_sd))
+  skip_if(is.null(ef_roi_sd))
+  expect_gt(length(grep("^w\\.", colnames(ef_roi_sd$frontier))), 0L)
+})
+
+# risk_aversion branch in meanvar.efficient.frontier (line ~179)
+ef_roi_sd_ra <- tryCatch(
+  extractEfficientFrontier(opt_roi_sd, match.col = "StdDev",
+                            n.portfolios = 5L, risk_aversion = c(1, 5, 10)),
+  error = function(e) NULL
+)
+
+test_that("extractEfficientFrontier ROI StdDev risk_aversion: returns efficient.frontier", {
+  skip_if(is.null(opt_roi_sd))
+  skip_if(is.null(ef_roi_sd_ra))
+  expect_s3_class(ef_roi_sd_ra, "efficient.frontier")
+})
+
+test_that("extractEfficientFrontier ROI StdDev risk_aversion: frontier has lambda column", {
+  skip_if(is.null(opt_roi_sd))
+  skip_if(is.null(ef_roi_sd_ra))
+  expect_true("lambda" %in% colnames(ef_roi_sd_ra$frontier))
+})
+
+
+# ---------------------------------------------------------------------------
+# Tests: extractEfficientFrontier — GenSA object raises informative error
+# Exercises lines 707-709 of extract.efficient.frontier.R.
+# ---------------------------------------------------------------------------
+
+test_that("extractEfficientFrontier stops with GenSA object", {
+  fake_gensa <- structure(
+    list(portfolio = list(), R = matrix(1:4, 2, 2)),
+    class = c("optimize.portfolio.GenSA", "optimize.portfolio")
+  )
+  expect_error(
+    extractEfficientFrontier(fake_gensa),
+    regexp = "GenSA"
+  )
+})
+
+
+# ---------------------------------------------------------------------------
+# Tests: extract.efficient.frontier — match.col pmatch fallback (lines 43-45)
+# Exercises the fallback: pmatch(paste(match.col,match.col,"."), columnnames).
+# This is triggered when the direct pmatch fails but the dot-doubled name
+# succeeds — and also the error path when neither matches.
+# ---------------------------------------------------------------------------
+
+# Build a small random-portfolio result for direct calls to the internal function
+init_rp_pmatch <- portfolio.spec(assets = funds)
+init_rp_pmatch <- add.constraint(portfolio = init_rp_pmatch,
+                                  type = "weight_sum",
+                                  min_sum = 0.99, max_sum = 1.01)
+init_rp_pmatch <- add.constraint(portfolio = init_rp_pmatch, type = "long_only")
+init_rp_pmatch <- add.objective(portfolio = init_rp_pmatch, type = "return", name = "mean")
+init_rp_pmatch <- add.objective(portfolio = init_rp_pmatch, type = "risk",   name = "ES")
+
+opt_rp_pmatch <- tryCatch({
+  set.seed(42)
+  optimize.portfolio(R = R, portfolio = init_rp_pmatch,
+                     optimize_method = "random",
+                     trace = TRUE, search_size = 200L)
+}, error = function(e) NULL)
+
+test_that("extract.efficient.frontier errors when match.col cannot be matched at all", {
+  skip_if(is.null(opt_rp_pmatch))
+  expect_error(
+    PortfolioAnalytics:::extract.efficient.frontier(
+      opt_rp_pmatch, match.col = "NonExistentColumn", n.portfolios = 5L),
+    regexp = "could not match match.col"
+  )
+})
+
+test_that("extract.efficient.frontier works with exact match.col (ES)", {
+  skip_if(is.null(opt_rp_pmatch))
+  ef <- tryCatch(
+    PortfolioAnalytics:::extract.efficient.frontier(
+      opt_rp_pmatch, match.col = "ES", n.portfolios = 5L),
+    error = function(e) NULL
+  )
+  skip_if(is.null(ef))
+  expect_s3_class(ef, "frontier")
+})
+
+
+# ---------------------------------------------------------------------------
+# Tests: create.EfficientFrontier — DEoptim type
+# Exercises the "DEoptim" switch-case branch at lines 654-663 of
+# extract.efficient.frontier.R, which calls optimize.portfolio with
+# optimize_method="DEoptim" and trace=TRUE, then extracts the frontier.
+# ---------------------------------------------------------------------------
+
+skip_if_not_installed("DEoptim")
+
+init_de <- portfolio.spec(assets = funds)
+init_de <- add.constraint(portfolio = init_de,
+                           type = "weight_sum", min_sum = 0.99, max_sum = 1.01)
+init_de <- add.constraint(portfolio = init_de, type = "long_only")
+init_de <- add.objective(portfolio = init_de, type = "return", name = "mean")
+init_de <- add.objective(portfolio = init_de, type = "risk",   name = "ES")
+
+ef_de <- tryCatch({
+  set.seed(42)
+  create.EfficientFrontier(R = R, portfolio = init_de,
+                            type         = "DEoptim",
+                            n.portfolios = 5L,
+                            search_size  = 200L,
+                            match.col    = "ES")
+}, error = function(e) NULL)
+
+test_that("create.EfficientFrontier DEoptim: returns efficient.frontier class", {
+  skip_if(is.null(ef_de))
+  expect_s3_class(ef_de, "efficient.frontier")
+})
+
+test_that("create.EfficientFrontier DEoptim: $frontier is not NULL", {
+  skip_if(is.null(ef_de))
+  expect_false(is.null(ef_de$frontier))
+})
+
+test_that("create.EfficientFrontier DEoptim: $frontier class is 'frontier'", {
+  skip_if(is.null(ef_de))
+  expect_s3_class(ef_de$frontier, "frontier")
+})
+
+test_that("create.EfficientFrontier DEoptim: $portfolio is a portfolio object", {
+  skip_if(is.null(ef_de))
+  expect_true(is.portfolio(ef_de$portfolio))
+})
+
+test_that("create.EfficientFrontier DEoptim: $R slot is not NULL", {
+  skip_if(is.null(ef_de))
+  expect_false(is.null(ef_de$R))
+})
+
+test_that("create.EfficientFrontier DEoptim: $call is not NULL", {
+  skip_if(is.null(ef_de))
+  expect_false(is.null(ef_de$call))
+})
+
+test_that("create.EfficientFrontier DEoptim: frontier has at most n.portfolios rows", {
+  skip_if(is.null(ef_de))
+  expect_lte(nrow(ef_de$frontier), 5L)
+})

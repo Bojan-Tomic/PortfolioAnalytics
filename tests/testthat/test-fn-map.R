@@ -512,3 +512,236 @@ test_that("group_fail() returns TRUE for both groups when both bounds are violat
   expect_true(result[1])
   expect_true(result[2])
 })
+
+
+# ===========================================================================
+# group_fail() — group_pos argument (line 857 of constraint_fn_map.R)
+# ===========================================================================
+
+test_that("group_fail() with group_pos detects too many non-zero weights in a group", {
+  # Group 1 has 3 non-zero weights (assets 1,2,3 each = 0.2) but group_pos[1]=2
+  w <- c(0.2, 0.2, 0.2, 0.2, 0.2)
+  groups <- list(c(1, 2, 3), c(4, 5))
+  cLO <- c(0.1, 0.1)
+  cUP <- c(0.9, 0.9)
+  result <- PortfolioAnalytics:::group_fail(w, groups, cLO, cUP, group_pos = c(2, 2))
+  expect_true(result[1])   # 3 non-zero > group_pos[1]=2 => fail
+  expect_false(result[2])  # 2 non-zero <= group_pos[2]=2 => ok
+})
+
+test_that("group_fail() with group_pos returns FALSE when non-zero count is within limit", {
+  # Group 1: assets 1,2 non-zero (count=2), group_pos[1]=3 => ok
+  w <- c(0.3, 0.7, 0.0, 0.0, 0.0)
+  groups <- list(c(1, 2, 3), c(4, 5))
+  cLO <- c(0.0, 0.0)
+  cUP <- c(1.0, 1.0)
+  result <- PortfolioAnalytics:::group_fail(w, groups, cLO, cUP, group_pos = c(3, 2))
+  expect_false(result[1])
+  expect_false(result[2])
+})
+
+
+# ===========================================================================
+# rp_increase() — early return path (line 931)
+# When sum(weights) >= min_sum already, return immediately unchanged.
+# ===========================================================================
+
+test_that("rp_increase() returns weights unchanged when sum already >= min_sum", {
+  w <- c(0.25, 0.25, 0.25, 0.25, 0.25) # sum = 1.25 >= 0.99
+  wt_seq <- seq(0, 1, by = 0.01)
+  result <- PortfolioAnalytics:::rp_increase(
+    weights = w, min_sum = 0.99,
+    max_box = rep(1, 5), weight_seq = wt_seq
+  )
+  expect_equal(result, w)
+  expect_equal(sum(result), 1.25)
+})
+
+test_that("rp_increase() returns a vector of same length as input", {
+  w <- c(0.2, 0.2, 0.2, 0.2, 0.2) # sum = 1.0 >= 0.99
+  wt_seq <- seq(0, 1, by = 0.01)
+  result <- PortfolioAnalytics:::rp_increase(
+    weights = w, min_sum = 0.99,
+    max_box = rep(1, 5), weight_seq = wt_seq
+  )
+  expect_length(result, 5L)
+  expect_true(is.numeric(result))
+})
+
+test_that("rp_increase() increases weights when sum is below min_sum", {
+  w <- c(0.1, 0.1, 0.1, 0.1, 0.1) # sum = 0.5 < 0.99
+  wt_seq <- seq(0, 1, by = 0.01)
+  set.seed(42)
+  result <- PortfolioAnalytics:::rp_increase(
+    weights = w, min_sum = 0.99,
+    max_box = rep(1, 5), weight_seq = wt_seq
+  )
+  expect_true(is.numeric(result))
+  expect_length(result, 5L)
+  # Sum should be >= starting sum (weights should not decrease)
+  expect_true(sum(result) >= sum(w))
+})
+
+
+# ===========================================================================
+# rp_decrease() — early return path (line 960)
+# When sum(weights) <= max_sum already, return immediately unchanged.
+# ===========================================================================
+
+test_that("rp_decrease() returns weights unchanged when sum already <= max_sum", {
+  w <- c(0.2, 0.2, 0.2, 0.2, 0.2) # sum = 1.0 <= 1.01
+  wt_seq <- seq(0, 1, by = 0.01)
+  result <- PortfolioAnalytics:::rp_decrease(
+    weights = w, max_sum = 1.01,
+    min_box = rep(0, 5), weight_seq = wt_seq
+  )
+  expect_equal(result, w)
+  expect_equal(sum(result), 1.0)
+})
+
+test_that("rp_decrease() returns a vector of same length as input", {
+  w <- c(0.15, 0.15, 0.15, 0.15, 0.15) # sum = 0.75 <= 1.01
+  wt_seq <- seq(0, 1, by = 0.01)
+  result <- PortfolioAnalytics:::rp_decrease(
+    weights = w, max_sum = 1.01,
+    min_box = rep(0, 5), weight_seq = wt_seq
+  )
+  expect_length(result, 5L)
+  expect_true(is.numeric(result))
+})
+
+test_that("rp_decrease() decreases weights when sum exceeds max_sum", {
+  w <- c(0.3, 0.3, 0.3, 0.3, 0.3) # sum = 1.5 > 1.01
+  wt_seq <- seq(0, 1, by = 0.01)
+  set.seed(42)
+  result <- PortfolioAnalytics:::rp_decrease(
+    weights = w, max_sum = 1.01,
+    min_box = rep(0, 5), weight_seq = wt_seq
+  )
+  expect_true(is.numeric(result))
+  expect_length(result, 5L)
+  # Sum should be <= starting sum (weights should not increase)
+  expect_true(sum(result) <= sum(w))
+})
+
+
+# ===========================================================================
+# rp_position_limit() — max_pos_long branch (lines 1045-1060)
+# ===========================================================================
+
+test_that("rp_position_limit() with max_pos_long reduces long positions", {
+  set.seed(42)
+  # 4 long positions but max_pos_long=2
+  w <- c(0.3, 0.3, 0.3, 0.1, 0.0)
+  wt_seq <- seq(-0.5, 0.5, by = 0.01)
+  result <- PortfolioAnalytics:::rp_position_limit(
+    weights = w,
+    max_pos = NULL,
+    max_pos_long = 2L,
+    max_pos_short = NULL,
+    min_box = rep(-0.5, 5),
+    max_box = rep(0.5, 5),
+    weight_seq = wt_seq
+  )
+  tol <- .Machine$double.eps^0.5
+  expect_true(is.numeric(result))
+  expect_length(result, 5L)
+  # After applying rp_position_limit the number of long positions should be <= 2
+  expect_lte(sum(result > tol), 2L)
+})
+
+test_that("rp_position_limit() with max_pos_long returns numeric vector", {
+  set.seed(42)
+  w <- c(0.4, 0.3, 0.2, 0.1, 0.0)
+  wt_seq <- seq(0, 1, by = 0.01)
+  result <- PortfolioAnalytics:::rp_position_limit(
+    weights = w,
+    max_pos = NULL,
+    max_pos_long = 2L,
+    max_pos_short = NULL,
+    min_box = rep(0, 5),
+    max_box = rep(1, 5),
+    weight_seq = wt_seq
+  )
+  expect_true(is.numeric(result))
+  expect_length(result, 5L)
+})
+
+
+# ===========================================================================
+# rp_position_limit() — max_pos_short branch (lines 1063-1078)
+# ===========================================================================
+
+test_that("rp_position_limit() with max_pos_short reduces short positions", {
+  set.seed(42)
+  # 3 short positions but max_pos_short=1
+  w <- c(-0.3, -0.3, -0.3, 0.1, 0.1)
+  wt_seq <- seq(-0.5, 0.5, by = 0.01)
+  result <- PortfolioAnalytics:::rp_position_limit(
+    weights = w,
+    max_pos = NULL,
+    max_pos_long = NULL,
+    max_pos_short = 1L,
+    min_box = rep(-0.5, 5),
+    max_box = rep(0.5, 5),
+    weight_seq = wt_seq
+  )
+  tol <- .Machine$double.eps^0.5
+  expect_true(is.numeric(result))
+  expect_length(result, 5L)
+  # After applying rp_position_limit the number of short positions should be <= 1
+  expect_lte(sum(result < -tol), 1L)
+})
+
+test_that("rp_position_limit() with max_pos_short returns numeric vector", {
+  set.seed(42)
+  w <- c(-0.4, -0.3, 0.4, 0.2, 0.1)
+  wt_seq <- seq(-0.5, 0.5, by = 0.01)
+  result <- PortfolioAnalytics:::rp_position_limit(
+    weights = w,
+    max_pos = NULL,
+    max_pos_long = NULL,
+    max_pos_short = 1L,
+    min_box = rep(-0.5, 5),
+    max_box = rep(0.5, 5),
+    weight_seq = wt_seq
+  )
+  expect_true(is.numeric(result))
+  expect_length(result, 5L)
+})
+
+
+# ===========================================================================
+# rp_transform() — NULL weight_seq with infinite box bounds (lines 454-455)
+# When weight_seq is NULL and min_box/max_box contain Inf/-Inf, the
+# guard replaces non-finite bounds with 0/1 before calling generatesequence().
+# ===========================================================================
+
+test_that("rp_transform() with NULL weight_seq and infinite bounds runs without error", {
+  set.seed(42)
+  w <- c(0.1, 0.1, 0.1, 0.1, 0.1) # sum = 0.5 < 0.99
+  result <- rp_transform(
+    w = w, min_sum = 0.99, max_sum = 1.01,
+    min_box = rep(-Inf, 5), max_box = rep(Inf, 5),
+    groups = NULL, cLO = NULL, cUP = NULL,
+    max_pos = NULL, group_pos = NULL,
+    max_pos_long = NULL, max_pos_short = NULL,
+    leverage = NULL, weight_seq = NULL
+  )
+  expect_true(is.numeric(result))
+  expect_length(result, 5L)
+})
+
+test_that("rp_transform() with NULL weight_seq and infinite bounds produces valid sum", {
+  set.seed(42)
+  w <- c(0.1, 0.1, 0.1, 0.1, 0.1)
+  result <- rp_transform(
+    w = w, min_sum = 0.99, max_sum = 1.01,
+    min_box = rep(-Inf, 5), max_box = rep(Inf, 5),
+    groups = NULL, cLO = NULL, cUP = NULL,
+    max_pos = NULL, group_pos = NULL,
+    max_pos_long = NULL, max_pos_short = NULL,
+    leverage = NULL, weight_seq = NULL
+  )
+  expect_true(sum(result) >= 0.98 && sum(result) <= 1.02)
+})
