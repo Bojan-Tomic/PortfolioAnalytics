@@ -118,6 +118,16 @@ in the equality constraint construction.
 **Regression test:** `tests/testthat/test-optFUN-gaps.R` — the "non-NA target"
 test is guarded by `skip_if` with a comment "known formulation issue".
 
+### BUG-9 — `VaR`/`ES` in PerformanceAnalytics: `portfolio_method='single'` does not auto-compute moments
+**Upstream package:** `PerformanceAnalytics` — filed as
+[braverock/PerformanceAnalytics#197](https://github.com/braverock/PerformanceAnalytics/issues/197)  
+**Symptom:** `VaR(R, weights=w, portfolio_method='single', method='modified')` (no explicit `mu`/`sigma`/`m3`/`m4`) crashes with *"M3 must be a matrix"*. Same for `method='gaussian'` (*"requires numeric/complex matrix/vector arguments"*) and for `ES()`.  
+**Root cause:** The `portfolio_method='single'` branch of `VaR()`/`ES()` passes `mu`/`sigma`/`m3`/`m4` directly to `mVaR.MM()`/`GVaR.MM()` without first auto-computing them when they are `NULL`. The multi-asset branch already has `if (is.null(m3)) m3 = M3.MM(R, as.mat=FALSE)` guards; the `single` branch lacks them.  
+**Downstream impact:** `applyFUN()` in PortfolioAnalytics calls `SharpeRatio()` with `FUN='SharpeRatio'`; `SharpeRatio` has no `m3`/`m4` formals so it cannot pass higher-order moments to its internal `VaR()`/`ES()` calls, causing the crash in `chart.Concentration` (and any `applyFUN()` usage) when `FUN` is any function that routes through `VaR`/`ES` with `method='modified'` or `method='gaussian'`.  
+**Fix (upstream):** Add moment auto-computation guards to the `single+weights` path in `VaR()` and `ES()`.  
+**Workaround:** Pass `FUN="StdDev"` to `SharpeRatio`, or supply explicit moments when calling `VaR`/`ES` directly.  
+**Regression test:** None yet — the bug is upstream; once PA#197 is fixed and a new PA version is released, add a test confirming `applyFUN(R, weights, FUN='SharpeRatio')` works without error.
+
 ### BUG-8 — `summary.optimize.portfolio.parallel`: crashes when nodes use ROI solver
 **File:** `R/generics.R`, `summary.optimize.portfolio.parallel()`, lines 1077–1080  
 **Symptom:** Calling `summary()` on the result of `optimize.portfolio.parallel()`
