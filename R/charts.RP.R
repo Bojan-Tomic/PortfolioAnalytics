@@ -10,6 +10,7 @@
 #
 ###############################################################################
 
+#' @export
 chart.Weight.RP <- function(object, ..., neighbors = NULL, main="Weights", las = 3, xlab=NULL, cex.lab = 1, element.color = "darkgray", cex.axis=0.8, colorset=NULL, legend.loc="topright", cex.legend=0.8, plot.type="line"){
   # Specific to the output of the random portfolio code with constraints
   if(!inherits(object, "optimize.portfolio.random")){
@@ -93,6 +94,7 @@ chart.Weight.RP <- function(object, ..., neighbors = NULL, main="Weights", las =
 #' @export
 chart.Weights.optimize.portfolio.random <- chart.Weight.RP
 
+#' @export
 chart.Scatter.RP <- function(object, ..., neighbors = NULL, return.col='mean', risk.col='ES', chart.assets=FALSE, element.color = "darkgray", cex.axis=0.8, xlim=NULL, ylim=NULL){
   # more or less specific to the output of the random portfolio code with constraints
   # will work to a point with other functions, such as optimize.porfolio.parallel
@@ -262,6 +264,7 @@ chart.Scatter.RP <- function(object, ..., neighbors = NULL, return.col='mean', r
 chart.RiskReward.optimize.portfolio.random <- chart.Scatter.RP
 
 
+#' @export
 charts.RP <- function(RP, risk.col, return.col, chart.assets=FALSE, neighbors=NULL, main="Random.Portfolios", xlim=NULL, ylim=NULL, ...){
   # Specific to the output of the random portfolio code with constraints
   if(!inherits(RP, "optimize.portfolio.random")) stop("RP must be of class optimize.portfolio.random")

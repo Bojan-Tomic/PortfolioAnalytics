@@ -4,7 +4,7 @@
 \alias{applyFUN}
 \title{Apply a risk or return function to a set of weights}
 \usage{
-applyFUN(R, weights, FUN = "mean", arguments)
+applyFUN(R, weights, FUN = "mean", arguments = NULL)
 }
 \arguments{
 \item{R}{xts object of asset returns}

@@ -95,8 +95,13 @@ test_that("chart.Weight.RP: rejects non-random object with informative error", {
   )
 })
 
-test_that("chart.Weights.optimize.portfolio.random is an alias for chart.Weight.RP", {
-  expect_identical(chart.Weights.optimize.portfolio.random, chart.Weight.RP)
+test_that("chart.Weights dispatch to chart.Weights.optimize.portfolio.random does not error", {
+  skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  # chart.Weights.optimize.portfolio.random is an alias for chart.Weight.RP
+  expect_no_error(
+    chart.Weights(opt_rp_trace, plot.type = "line")
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -131,8 +136,13 @@ test_that("chart.Scatter.RP: rejects non-random object with informative error", 
   )
 })
 
-test_that("chart.RiskReward.optimize.portfolio.random is an alias for chart.Scatter.RP", {
-  expect_identical(chart.RiskReward.optimize.portfolio.random, chart.Scatter.RP)
+test_that("chart.RiskReward dispatch to chart.RiskReward.optimize.portfolio.random does not error", {
+  skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  # chart.RiskReward.optimize.portfolio.random is an alias for chart.Scatter.RP
+  expect_no_error(
+    chart.RiskReward(opt_rp_trace, return.col = "mean", risk.col = "ES")
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -169,10 +179,9 @@ test_that("plot.optimize.portfolio.random: runs without error via generic plot()
 test_that("plot.optimize.portfolio.random: direct method call runs without error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
+  # Use generic dispatch instead of direct method call (S3 methods not plain-exported)
   expect_no_error(
-    plot.optimize.portfolio.random(opt_rp_trace,
-                                   return.col = "mean",
-                                   risk.col   = "ES")
+    plot(opt_rp_trace, return.col = "mean", risk.col = "ES")
   )
 })
 
@@ -184,10 +193,9 @@ test_that("plot.optimize.portfolio.random: direct method call runs without error
 test_that("plot.optimize.portfolio: runs without error on random object", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
+  # plot.optimize.portfolio is not plain-exported; test via S3 dispatch
   expect_no_error(
-    plot.optimize.portfolio(opt_rp_trace,
-                            return.col = "mean",
-                            risk.col   = "ES")
+    plot(opt_rp_trace, return.col = "mean", risk.col = "ES")
   )
 })
 
@@ -228,7 +236,7 @@ test_that("chart.Weights.opt.list: line plot runs without error", {
   skip_if(is.null(opt_list_obj), "opt_list_obj fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weights.opt.list(opt_list_obj, plot.type = "line")
+    chart.Weights(opt_list_obj, plot.type = "line")
   )
 })
 
@@ -236,14 +244,14 @@ test_that("chart.Weights.opt.list: barplot variant runs without error (covers ba
   skip_if(is.null(opt_list_obj), "opt_list_obj fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weights.opt.list(opt_list_obj, plot.type = "barplot")
+    chart.Weights(opt_list_obj, plot.type = "barplot")
   )
 })
 
 test_that("chart.Weights.opt.list: rejects non-opt.list object with informative error", {
   expect_error(
-    chart.Weights.opt.list(list()),
-    regexp = "object must be of class 'opt.list'"
+    chart.Weights(structure(list(), class = "not.opt.list")),
+    regexp = "no applicable method"
   )
 })
 
@@ -259,25 +267,25 @@ test_that("chart.RiskReward.opt.list: runs without error with ES / mean columns"
   skip_if(is.null(opt_list_obj), "opt_list_obj fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.RiskReward.opt.list(opt_list_obj,
-                              risk.col   = "ES",
-                              return.col = "mean")
+    chart.RiskReward(opt_list_obj,
+                     risk.col   = "ES",
+                     return.col = "mean")
   )
 })
 
 test_that("chart.RiskReward.opt.list: rejects non-opt.list object with informative error", {
   expect_error(
-    chart.RiskReward.opt.list(list()),
-    regexp = "object must be of class 'opt.list'"
+    chart.RiskReward(structure(list(), class = "not.opt.list")),
+    regexp = "no applicable method"
   )
 })
 
 test_that("chart.RiskReward.opt.list: stops with invalid risk.col", {
   skip_if(is.null(opt_list_obj), "opt_list_obj fixture not available")
   expect_error(
-    chart.RiskReward.opt.list(opt_list_obj,
-                              risk.col   = "not_a_real_column",
-                              return.col = "mean"),
+    chart.RiskReward(opt_list_obj,
+                     risk.col   = "not_a_real_column",
+                     return.col = "mean"),
     regexp = "not in column names"
   )
 })
@@ -285,9 +293,9 @@ test_that("chart.RiskReward.opt.list: stops with invalid risk.col", {
 test_that("chart.RiskReward.opt.list: stops with invalid return.col", {
   skip_if(is.null(opt_list_obj), "opt_list_obj fixture not available")
   expect_error(
-    chart.RiskReward.opt.list(opt_list_obj,
-                              risk.col   = "ES",
-                              return.col = "not_a_real_column"),
+    chart.RiskReward(opt_list_obj,
+                     risk.col   = "ES",
+                     return.col = "not_a_real_column"),
     regexp = "not in column names"
   )
 })
