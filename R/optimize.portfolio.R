@@ -92,7 +92,7 @@ optimize.portfolio_v1 <- function(R,
   if (optimize_method == "DEoptim") {
     stopifnot("package:DEoptim" %in% search() || requireNamespace("DEoptim", quietly = TRUE))
     # DEoptim does 200 generations by default, so lets set the size of each generation to search_size/200)
-    if (hasArg(itermax)) itermax <- match.call(expand.dots = TRUE)$itermax else itermax <- N * 50
+    if (hasArg(itermax)) itermax <- dotargs$itermax else itermax <- N * 50
     NP <- round(search_size / itermax)
     if (NP < (N * 10)) NP <- N * 10
     if (NP > 2000) NP <- 2000
@@ -800,6 +800,11 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
   # Get the constraints from the portfolio object
   constraints <- get_constraints(portfolio)
 
+  # Capture user-supplied ... args before dotargs is overwritten by moment output.
+  # This preserves solver-specific arguments (e.g. itermax, maxit, parallelType)
+  # so they remain accessible after dotargs <- mout (line below).
+  user_dotargs <- list(...)
+
   # set portfolio moments only once
   # For set.portfolio.moments, we are passing the returns,
   # portfolio object, and dotargs. dotargs is a list of arguments
@@ -880,7 +885,7 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
   if (optimize_method == "DEoptim") {
     stopifnot("package:DEoptim" %in% search() || requireNamespace("DEoptim", quietly = TRUE))
     # DEoptim does 200 generations by default, so lets set the size of each generation to search_size/200)
-    if (hasArg(itermax)) itermax <- match.call(expand.dots = TRUE)$itermax else itermax <- N * 50
+    if (hasArg(itermax)) itermax <- user_dotargs$itermax else itermax <- N * 50
     NP <- round(search_size / itermax)
     if (NP < (N * 10)) NP <- N * 10
     if (NP > 2000) NP <- 2000
@@ -890,7 +895,7 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
     }
 
     # check to see whether we need to disable foreach for parallel optimization, esp if called from inside foreach
-    if (hasArg(parallel)) parallel <- match.call(expand.dots = TRUE)$parallel else parallel <- TRUE
+    if (hasArg(parallel)) parallel <- user_dotargs$parallel else parallel <- TRUE
     if (!isTRUE(parallel) && "package:foreach" %in% search()) {
       foreach::registerDoSEQ()
     }
@@ -1293,7 +1298,7 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
   ## case if method=pso---particle swarm
   if (optimize_method == "pso") {
     stopifnot("package:pso" %in% search() || requireNamespace("pso", quietly = TRUE))
-    if (hasArg(maxit)) maxit <- match.call(expand.dots = TRUE)$maxit else maxit <- N * 50
+    if (hasArg(maxit)) maxit <- user_dotargs$maxit else maxit <- N * 50
     controlPSO <- list(trace = FALSE, fnscale = 1, maxit = 1000, maxf = Inf, abstol = -Inf, reltol = 0)
     PSOcargs <- names(controlPSO)
 
@@ -1346,7 +1351,7 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
   ## case if method=GenSA---Generalized Simulated Annealing
   if (optimize_method == "GenSA") {
     stopifnot("package:GenSA" %in% search() || requireNamespace("GenSA", quietly = TRUE))
-    if (hasArg(maxit)) maxit <- match.call(expand.dots = TRUE)$maxit else maxit <- N * 50
+    if (hasArg(maxit)) maxit <- user_dotargs$maxit else maxit <- N * 50
     controlGenSA <- list(
       maxit = 5000, threshold.stop = NULL, temperature = 5230,
       visiting.param = 2.62, acceptance.param = -5, max.time = NULL,
