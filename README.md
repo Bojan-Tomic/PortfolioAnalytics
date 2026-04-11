@@ -7,138 +7,85 @@ README
 [![Codecov test coverage](https://codecov.io/gh/braverock/PortfolioAnalytics/graph/badge.svg)](https://app.codecov.io/gh/braverock/PortfolioAnalytics)
 <!-- badges: end -->
 
-This V2.1 version of PortfolioAnalytics is an update to the substantial
-V2.0 version that was released on 2024-07-03. We first describe the V2.0
-features, then discuss the R demo capability, and finally we describe
-the additional V2.1 features.
+## Overview
 
-# 2.0 Features
+`PortfolioAnalytics` is a comprehensive R package designed to provide numerical methods and visualization tools for portfolio optimization and analysis. It is built to handle complex portfolio optimization problems with a wide range of constraints and objectives, supporting both traditional and modern risk measures.
 
-A major feature of 2.0 was the integration of the CVXR solver R package
-for convex optimization. CVXR supports eleven solver packages, each of
-which supports solvers for one or more of the following optimization
-problems: LP, QP, SOCP, SDP, EXP, MIP. See the Table near the beginning
-of the document “Convex Optimization in R” at <https://cvxr.rbind.io/>.
-Thus, with PortfolioAnalytics 2.0, users are able to use any one of a
-large variety of solvers available in CVXR for their portfolio optimization
-problems.
+### Main Use Cases
+*   **Constrained Optimization**: Define and solve optimization problems with box, group, turnover, diversification, leverage, and factor exposure constraints.
+*   **Custom Objectives**: Optimize for various targets including mean return, variance, expected shortfall (CVaR), risk budgets, and coherent second moments (CSM).
+*   **Backtesting**: Evaluate portfolio performance over time with rebalancing and walk-forward analysis.
+*   **Visualization**: Analyze efficient frontiers, risk-reward trade-offs, and weight distributions through extensive charting capabilities.
 
-A particular use of CVXR in PortfolioAnalytics 2.0 is for computing
-Minimum Coherent Second Moment (MCSM) portfolios, which are
-second-order cone programming (SOCP) optimization problems. This is
-a quite new capability that is not available in other portfolio
-optimization software products. Details are provided in the Vignette
-“cvxrPortfolioAnalytics”.
+### Advanced Features
+*   **CVXR Integration**: Seamlessly use the `CVXR` solver infrastructure for convex optimization problems (LP, QP, SOCP, SDP, MIP).
+*   **Robust Covariance Estimators**: Compute outliers-robust portfolios using MM-estimators, Rocke's estimator, Minimum Covariance Determinant (MCD), and more.
+*   **Multi-layer Optimization**: Define hierarchical portfolio structures for sub-portfolio optimization.
+*   **Regime Switching**: Optimize portfolios across different market regimes.
+*   **Custom Moments and Objectives**: Flexibility to provide user-defined moment functions and objective functions.
 
-Another important feature of PortfolioAnalytics 2.0, is that it contains
-functionality for computing outliers-robust minimum variance (MV)
-optimal portfolios based on any one of several robust covariance matrix
-estimators that are not much influenced by outliers Details are provided
-in the Vignette “robustCovMatForPA”.
+## Supported Optimization Engines
 
-New PortfolioAnalytics Functions:
+`PortfolioAnalytics` supports a variety of global and local optimization engines:
 
-1.  meancsm.efficient.frontier (create Mean-CSM efficient frontier)
-    utility function
-2.  meanrisk.efficient.frontier (generate multiple efficient frontiers
-    for portfolios with the same constraint object.
-3.  extract_risk (extract the risk value, e.g., StdDev or ES or CSM,
-    based on the weights of a portfolio)
-4.  chart.EfficientFrontierCompare (Overlay the efficient frontiers of
-    different minRisk portfolio objects on a single plot)
-5.  backtest.plot (based on Peter Carl’s code, generate plots of the
-    cumulative returns and/or drawdown for back-testing)
-6.  opt.outputMvo (converts output of `optimize.portfolio` to a list of
-    the portfolio weights, mean, volatility and Sharpe Ratio)
-7.  plotFrontiers (plot frontiers based on the result of
-    `meanvar.efficient.frontier`, `meanetl.efficient.frontier` or
-    `meancsm.efficient.frontier`)
+*   **CVXR**: A modern convex optimization interface supporting various solvers like ECOS, OSQP, and SCS.
+*   **Random Portfolios**: Fast, heuristic optimization using sample, simplex, or grid-based portfolio generation.
+*   **DEoptim**: Differential Evolution optimization for non-convex and non-smooth problems.
+*   **ROI (R Optimization Infrastructure)**: A unified interface to multiple solvers including GLPK, Symphony, and Quadprog.
+*   **GenSA**: Generalized Simulated Annealing for global optimization.
+*   **pso**: Particle Swarm Optimization.
+*   **mco**: Multi-objective optimization using genetic algorithms (e.g., NSGA-II).
+*   **osqp**: Operator Splitting Solver for Quadratic Programming.
+*   **Rglpk**: Interface to the GNU Linear Programming Kit.
 
-Enhanced PortfolioAnalytics Functions:
+## Documentation and Examples
 
-1.  optimize.portfolio (enhanced with CVXR solvers, CSM objective,
-    customizable arg `momentFUN=` and output `~$moment_values`)
-2.  optimize.portfolio.rebalancing (enhanced with CVXR solvers, CSM
-    objective and customizable arg `momentFUN=`)
-3.  create.EfficientFrontier (enhanced with type `mean-CSM` and
-    `mean-risk`, and customizable arg `momentFUN=`)
+Comprehensive documentation is available in the `vignettes` directory:
+*   `portfolio_vignette`: Introductory guide to the package.
+*   `cvxrPortfolioAnalytics`: Deep dive into using CVXR for convex optimization.
+*   `robustCovMatForPA`: Detailed explanation of robust covariance matrix estimators.
+*   `ROI_vignette`: Guide to using the ROI solver infrastructure.
+*   `risk_budget_optimization`: Focus on risk budgeting techniques.
+*   `custom_moments_objectives`: Instructions for extending the package with custom logic.
 
-Support of S3 Methods for CVXR:
-1.  print.optimize.portfolio.CVXR
-2.  extractStats.optimize.portfolio.CVXR
+The package also includes extensive examples and demo scripts:
+*   `demo/`: Over 30 scripts covering everything from basic setup to replicating research papers (e.g., `demo_JPM2024MinDownsideRisk.R`).
+*   `inst/examples/`: Additional example scripts for specific use cases.
 
-Custom Moment Functions for Robust Covariance Matrices:
-1.  custom.covRob.MM
-2.  custom.covRob.Rocke
-3.  custom.covRob.Mcd
-4.  custom.covRob.TSGS
-5.  MycovRobMcd
-6.  MycovRobTSGS
+## Release Summary
 
-Two New Vignettes, the pdf files of which are downloadable from PortfolioAnalytics at
-<https://CRAN.R-project.org/package=PortfolioAnalytics>:
-1.  cvxrPortfolioAnalytics, with CRAN title “CVXR for PortfolioAnalytics”.
-2.  robustCovMatForPA, with CRAN title “Robust Covariance Matrices for
-    PortfolioAnalytics”
+### [2.1.x] - Current
+*   **Enhanced Visualization**: Improved graphical displays for multiple efficient frontiers and robust covariance estimator settings.
+*   **Solver Updates**: Continued refinements to CVXR and ROI integrations.
+*   **JPM 2024 Paper Replication**: Added scripts to replicate "Minimum Downside Risk Portfolios" (October 2024).
+*   **Risk Measure Update**: Replaced EQS (Expected Quadratic Shortfall) with CSM (Coherent Second Moment).
 
-# PortfolioAnalytics Demo Scripts
-PortfolioAnalytics has contained a substantial number of demo R scripts in the *demo* folder for a long time.  Assuming that an R package is installed, but not necessarily loaded, you can view a list of the names of al the demo folder R scripts with the following R command
+### [2.0.x] - 2024
+*   **CVXR Integration**: Major feature allowing access to eleven solver packages via `CVXR`.
+*   **MCSM Portfolios**: Capability for Minimum Coherent Second Moment (MCSM) portfolios using SOCP.
+*   **Robust Portfolio Optimization**: Integrated several robust covariance matrix estimators (MM, Rocke, Mcd, TSGS).
+*   **New Utility Functions**: Added `extract_risk`, `chart.EfficientFrontierCompare`, `opt.outputMvo`, and more.
 
-demo(package = “packageName”)
+### [1.x] - 2013-2023
+*   **Rebalancing Support**: Enhanced `optimize.portfolio.rebalancing` for backtesting and walk-forward analysis.
+*   **Expanded Statistics**: Added `extractStats` and refined S3 methods for optimization outputs.
+*   **Group Constraints**: Robust support for hierarchical group-based constraints.
 
-Use the above for the PortfolioAnalytics package, and you will see a list of over 30 demo scripts,
-among which you will see the the following two demo scripts
+### [0.x] - 2009-2012
+*   **Package Foundation**: Initial development (originally named `optimizer`).
+*   **Core Solvers**: Introduced `DEoptim` and `Random Portfolios` support.
+*   **Initial ROI Support**: Early integration with the R Optimization Infrastructure.
 
-1.  demo_cvxrPortfolioAnalytics.R
-2.  demo_robustCovMatForPA.R
+## Thanks
 
-which runs the code for the corresponding two Vignettes listed above.
+`PortfolioAnalytics` has benefited immensely from the support of the open-source community and academic funding:
 
-You can view the code for any demo R script with the command “??” (but not with “help” command).  For example, in RStudio, use of the command
+*   **Google Summer of Code (GSoC)**: We are grateful for the project funding provided by Google over several years, including 2013, 2014, and 2022.
+*   **Student Contributors**:
+    *   **Xinran Zhao** (GSoC 2022) - CVXR integration and CSM risk measures.
+    *   **Yifu Kang** (GSoC 2022) - Robust covariance matrix estimators.
+    *   **Ross Bennett** (GSoC 2013, 2014) - Core framework development, rebalancing, and documentation.
+*   **Mentors**: Doug Martin, Steve Murray, Brian Peterson, Peter Carl, and Guy Yollin.
+*   **Community**: Thank you to all contributors who have submitted bug reports, feature requests, and code patches. Special thanks to the many users who have shared their expertise to make this package a industry standard for portfolio optimization in R.
 
-?? demo_cvxrPortfolioAnalytics
-
-results in a Help tab display with the followng two links:
-
-* *PortfolioAnalytics::demo_cvxrPortfolioAnalytics*
-* (*Run demo*).
-
-Use the first link, which results in a display of the entire R script in the Help tab.  Then copy/paste the script into your own new R file, and run it in chunks that are of interest to you. Many of the chunks will run quite quickly, e.g., a few seconds, but a few of them may take 2-4 minutes. Doing so for the demo_cvxrPortfolioAnalytics.R will help you learn some PortfolioAnalytics basics, as well as learn how to use new capabilities in Versions 2.0 and 2.1. Running the demo_robustCovMatForPA.R scripts will show you how to compute *robust minimum variance* portfolios based on returns *robust covariance matrix estimators* that are not much influenced by returns outliers.
-
-NOTE: We do not recommend general use of (*Run demo*). This is because it runs the entire demo script, which will often take much too long. Furthermore, some scripts may fail to execute properly when run this way. That said, the (*Run demo*) link can be handy for running R demo scripts that execute quickly.
-
-# New 2.1 Features
-
-The 2.1 version of PortfolioAnalytics contains the following new demo scripts:
-
-1. demo_JPM2024MinDownsideRisk.R
-2. demo_JPM2024MinDownsideRiskCVXR.R
-
-The first script replicates all the Exhibits (Figures and Tables) in the Journal of Portfolio Management paper “Minimum Downside Risk Portfolios", published in October 2024. This first script uses CVXR package solvers “under the hood”, i.e., not directly visible, in PortfolioAnalytics.  The second script replicates just the back-test results in Exhibits 6, 8, 10, 12, 14, 16, 18, in the above paper, but it uses the CVXR code directly in the script, where on can easily see the CVXR code details.
-
-The 2.1 release also contains:
-
-1. Extended functionalities for graphical displays of multiple efficient frontiers, and robust covariance estimator settings
-2. The term EQS for *expected quadratic shortfall* was replaced with CSM for *coherent second moment* risk.
-3. Updates to the vignettes cvxrPortfolioAnalytics and robustCovMatForPA, and their demo scripts.
-
-# Bug Reporting
-
-Please contribute with bug fixes, comments, and testing scripts!
-
-Please take your data and disguise it when submitting, or use data sets
-like “edhec” like we do in the demos or or like “stocksCRSP” and
-“factorsSPGMI” in the PCRA package or with your constraints and other
-objectives modified to demonstrate your problem on public data.
-
-Please report any bugs or issues on the PortfolioAnalytics GitHub page
-at <https://github.com/braverock/PortfolioAnalytics/issues>
-
-# Acknowledgements
-
-The bulk of the work in creating PortfolioAnalytics 2.0 was done by
-Xinran Zhao, along with contributions from Yifu Kang, under the support
-of a 2022 Google Summer of Code (GSOC 2022). Xinran and Yifu were
-mentored in GSOC 2022 by Professor Doug Martin and Professor Steve
-Murray in the Applied Mathematics Department at the University of
-Washington.
+For bug reporting and contributions, please visit our [GitHub Issues page](https://github.com/braverock/PortfolioAnalytics/issues).
