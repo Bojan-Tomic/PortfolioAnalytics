@@ -242,7 +242,14 @@ randomize_portfolio <- randomize_portfolio_v2 <- function (portfolio, max_permut
   }
   weight_seq <- portfolio$weight_seq
   if(is.null(weight_seq)){
-    weight_seq <- generatesequence(min=min(constraints$min), max=max(constraints$max), by=0.002)
+    # Guard against -Inf/Inf bounds when no box constraint was specified.
+    # Fall back to [0, 1] so generatesequence() can produce a finite grid.
+    # Fixes issue #12.
+    wt_min <- min(constraints$min)
+    wt_max <- max(constraints$max)
+    if (!is.finite(wt_min)) wt_min <- 0
+    if (!is.finite(wt_max)) wt_max <- 1
+    weight_seq <- generatesequence(min=wt_min, max=wt_max, by=0.002)
   }
   weight_seq <- as.vector(weight_seq)
   
@@ -583,6 +590,11 @@ rp_grid <- function(portfolio, permutations=2000, normalize=TRUE){
   # box constraints to generate the grid
   min <- constraints$min
   max <- constraints$max
+
+  # Guard against -Inf/Inf bounds when no box constraint is specified.
+  # Fall back to [0, 1] per asset. Fixes issue #12.
+  min[!is.finite(min)] <- 0
+  max[!is.finite(max)] <- 1
   
   # number of parameters and length.out levels to generate
   npar <- length(min)

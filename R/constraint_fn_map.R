@@ -51,7 +51,12 @@ fn_map <- function(weights, portfolio, relax=FALSE, verbose=FALSE, ...){
   
   weight_seq <- portfolio$weight_seq
   if(is.null(weight_seq)){
-    weight_seq <- generatesequence(min=min(constraints$min), max=max(constraints$max), by=0.002)
+    # Guard against -Inf/Inf bounds when no box constraint was specified.
+    wt_min <- min(constraints$min)
+    wt_max <- max(constraints$max)
+    if (!is.finite(wt_min)) wt_min <- 0
+    if (!is.finite(wt_max)) wt_max <- 1
+    weight_seq <- generatesequence(min=wt_min, max=wt_max, by=0.002)
   }
   weight_seq <- as.vector(weight_seq)
   
@@ -442,8 +447,14 @@ rp_transform <- function(w,
   #if(is.null(leverage)) leverage <- Inf
   
   # Generate a weight sequence, we should check for portfolio$weight_seq
-  if(is.null(weight_seq))
-    weight_seq <- generatesequence(min=min(min_box), max=max(max_box), by=0.002)
+  if(is.null(weight_seq)){
+    # Guard against -Inf/Inf bounds when no box constraint was specified.
+    wt_min <- min(min_box)
+    wt_max <- max(max_box)
+    if (!is.finite(wt_min)) wt_min <- 0
+    if (!is.finite(wt_max)) wt_max <- 1
+    weight_seq <- generatesequence(min=wt_min, max=wt_max, by=0.002)
+  }
   
   # make sure there is a 0 in weight_seq if we have a position limit constraint
   if((!is.null(max_pos) | !is.null(group_pos) | !is.null(max_pos_long) | !is.null(max_pos_short)) & !is.element(0, weight_seq)) weight_seq <- c(0, weight_seq)
