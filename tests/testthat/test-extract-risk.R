@@ -7,9 +7,9 @@
 #   extract_risk()   — basic call, moment_setting, alpha > 0.5 auto-flip,
 #                      explicit mu/sigma path
 #
-# Requires CVXR and the CLARABEL solver backend.  All tests are guarded with
-# skip_if_not_installed() so the suite degrades gracefully when either
-# package is absent.
+# Requires CVXR and the clarabel solver backend (R package name is lowercase
+# 'clarabel'; CVXR refers to it internally as "CLARABEL").  All tests are
+# guarded so the suite degrades gracefully when either package is absent.
 #
 # Copyright (c) 2004-2026 Brian G. Peterson, Peter Carl, Ross Bennett
 # License: GPL-3
@@ -17,7 +17,7 @@
 
 skip_on_cran()
 skip_if_not_installed("CVXR")
-skip_if_not_installed("CLARABEL")
+skip_if_not_installed("clarabel")
 
 library(PortfolioAnalytics)
 

@@ -33,5 +33,4 @@ Run `covr::package_coverage(quiet=FALSE)` with `TESTTHAT_CPUS=1` externally to
 identify the next set of coverage gaps, then add targeted test files here.
 
 Known areas not yet exercised by any test (as of `1174ee0`):
-- `extract_risk()` — file written (`test-extract-risk.R`) but all tests skip
-  because CLARABEL is not installed in this environment
+- none identified — await coverage report results
