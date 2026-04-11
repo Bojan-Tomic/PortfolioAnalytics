@@ -1153,6 +1153,14 @@ mean_etl_opt <- function(R, constraints, moments, alpha, solver, control){
   }
   min_mean <- as.numeric(min_ret$out)
   
+  # Guard against degenerate case: all feasible portfolios have the same
+  # expected return. optimize() requires xmin < xmax. Fixes #26.
+  if (min_mean >= max_mean) {
+    warning("mean_etl_opt: min_mean >= max_mean (degenerate return distribution). ",
+            "Returning max_mean as the target return.")
+    return(max_mean)
+  }
+
   # use optimize() to find the target return value that maximizes sharpe ratio
   opt <- try(optimize(f=starr_obj_fun, R=R, constraints=constraints, 
                       solver=solver, moments=moments, alpha=alpha,
@@ -1349,6 +1357,15 @@ max_sr_opt <- function(R, constraints, moments, lambda_hhi, conc_groups, solver,
   min_ret <- maxret_opt(R=R, moments=tmp_moments, constraints=constraints, 
                         target=NA, solver="glpk", control=control)
   min_mean <- as.numeric(min_ret$out)
+  
+  # Guard against degenerate case: all feasible portfolios have the same
+  # expected return (e.g. all asset means are equal or nearly so).
+  # optimize() requires xmin < xmax; return the only feasible target. Fixes #26.
+  if (min_mean >= max_mean) {
+    warning("max_sr_opt: min_mean >= max_mean (degenerate return distribution). ",
+            "Returning max_mean as the target return.")
+    return(max_mean)
+  }
   
   # use optimize() to find the target return value that maximizes sharpe ratio
   opt <- try(optimize(f=sharpe_obj_fun, R=R, constraints=constraints, 
