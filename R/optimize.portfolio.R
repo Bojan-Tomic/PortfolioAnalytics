@@ -1620,9 +1620,11 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
           rm(temp)
         }
 
-        # return target constraint
+        # return target constraint: mu^T w >= target
+        # Matrix has N + T + 1 columns (N weights + T scenarios + 1 VaR).
+        # Pad colMeans(R) with zeros for the T scenario and 1 VaR columns.
         if (!is.infinite(target)) {
-          Rglpk.mat <- rbind(Rglpk.mat, colMeans(R))
+          Rglpk.mat <- rbind(Rglpk.mat, c(colMeans(R), rep(0, T + 1)))
           Rglpk.dir <- c(Rglpk.dir, ">=")
           Rglpk.rhs <- c(Rglpk.rhs, target)
         }
@@ -1746,16 +1748,18 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
           rm(temp)
         }
 
-        # return target constraint
+        # return target constraint: mu^T w >= target
+        # The matrix has N + T + 2 columns (N weights + T scenarios + 1 VaR + 1 shrinkage).
+        # Previously this erroneously rbind'd two rows of wrong lengths
+        # (N+T+1 and 1), recycling them against the N+T+2-column matrix and
+        # producing a corrupt constraint matrix. Fixed: single row c(mu, 0...).
         if (!is.infinite(target)) {
           Rglpk.mat <- rbind(
             Rglpk.mat,
-            c(rep(0, N + T + 1)),
-            target
+            c(colMeans(R), rep(0, T + 2))
           )
-
-          Rglpk.dir <- c(Rglpk.dir, "<=")
-          Rglpk.rhs <- c(Rglpk.rhs, 1)
+          Rglpk.dir <- c(Rglpk.dir, ">=")
+          Rglpk.rhs <- c(Rglpk.rhs, target)
         }
 
         # shrinkage constraint
@@ -1904,9 +1908,11 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
           rm(temp)
         }
 
-        # return target constraint
+        # return target constraint: mu^T w >= target
+        # Matrix has N + T + 1 columns (N weights + T scenarios + 1 VaR).
+        # Pad colMeans(R) with zeros for the T scenario and 1 VaR columns.
         if (!is.infinite(target)) {
-          Rglpk.mat <- rbind(Rglpk.mat, c(colMeans(R), rep(0, N)))
+          Rglpk.mat <- rbind(Rglpk.mat, c(colMeans(R), rep(0, T + 1)))
           Rglpk.dir <- c(Rglpk.dir, ">=")
           Rglpk.rhs <- c(Rglpk.rhs, target)
         }
@@ -2228,17 +2234,18 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
           rm(temp)
         }
 
-        # return target constraint
+        # return target constraint: mu^T w >= target
+        # The matrix has 2*N + T + 2 columns (N weights + T scenarios + 1 VaR
+        # + 1 shrinkage + N position-index binaries).
+        # Previously rbind'd three rows of wrong lengths, recycling against
+        # the (2N+T+2)-column matrix. Fixed: single correctly-sized row.
         if (!is.infinite(target)) {
           Rglpk.mat <- rbind(
             Rglpk.mat,
-            c(rep(0, N + T + 1)),
-            target,
-            rep(0, N)
+            c(colMeans(R), rep(0, T + 2 + N))
           )
-
-          Rglpk.dir <- c(Rglpk.dir, "<=")
-          Rglpk.rhs <- c(Rglpk.rhs, 1)
+          Rglpk.dir <- c(Rglpk.dir, ">=")
+          Rglpk.rhs <- c(Rglpk.rhs, target)
         }
 
         # shrinkage constraint
