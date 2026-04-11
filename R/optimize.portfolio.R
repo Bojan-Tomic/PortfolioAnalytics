@@ -3090,7 +3090,14 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
 
     result_cvxr <- do.call(CVXR::psolve, cvxr_params)
     cvxr_wts <- CVXR::value(wts)
-    if (maxSR | maxSTARR | CSMratio) cvxr_wts <- cvxr_wts / sum(cvxr_wts)
+    if (maxSR | maxSTARR | CSMratio) {
+      cvxr_sum <- sum(cvxr_wts)
+      if (abs(cvxr_sum) < .Machine$double.eps^0.5) {
+        warning("CVXR weights sum to near-zero; skipping sum-normalization to avoid NaN/Inf weights.")
+      } else {
+        cvxr_wts <- cvxr_wts / cvxr_sum
+      }
+    }
     cvxr_wts <- as.vector(cvxr_wts)
     cvxr_wts <- normalize_weights(cvxr_wts)
     names(cvxr_wts) <- colnames(R)
