@@ -160,11 +160,13 @@ describing why ROI cannot be used here.
 
 Current baseline (from `covr/coverage-2026-04-11.rds`): **82.63%** (pre-session)
 
-New test files added this session (commits `6691ba0`, `d046d29`):
+New test files added this session (commits `6691ba0`–`a127fa0`):
 - `test-generics-print-summary.R` (33 tests) — covers all 122 uncovered exprs in `R/generics.R`
 - `test-opt-output-concentration.R` (16 tests) — covers `R/opt.outputMvo.R` and `R/chart.concentration.R` branches
 - `test-optFUN-milp-toc-leverage.R` (26 tests) — covers `maxret_milp_opt`, `etl_milp_opt`, `gmv_opt_toc`, `gmv_opt_leverage` in `R/optFUN.R`
 - `test-optimize-portfolio-v1-gensa-portflist.R` (28 tests) — covers `optimize.portfolio_v1`, GenSA path, and `portfolio.list` dispatch in `R/optimize.portfolio.R`
+- `test-charts-gensa-extra.R` (12 tests) — covers `rp=TRUE`, `chart.assets=TRUE`, no-trace stop, `las<=1`, infinite constraints, blank main in `charts.GenSA.R`
+- `test-charts-rp-extra.R` (14 tests) — covers matrix/df neighbors, non-matching col `applyFUN` fallback, optimal-weights `applyFUN` branch in `charts.RP.R`
 
 Lowest-coverage files remaining (estimates — run `covr::package_coverage()` for updated numbers):
 
@@ -174,11 +176,10 @@ Lowest-coverage files remaining (estimates — run `covr::package_coverage()` fo
 | `R/optFUN.R` | 77.08% | ~50 (improved) |
 | `R/chart.concentration.R` | 77.55% | ~5 (improved) |
 | `R/generics.R` | 78.71% | ~0 (fully covered) |
-| `R/charts.RP.R` | 80.25% | ~32 |
+| `R/charts.RP.R` | 80.25% | ~10 (improved) |
 | `R/opt.outputMvo.R` | 80.77% | ~0 (improved) |
-| `R/charts.GenSA.R` | 82.05% | ~14 |
+| `R/charts.GenSA.R` | 82.05% | ~5 (improved) |
 
 Remaining known untested areas:
 - `R/optimize.portfolio.R`: Rglpk MILP with position limits (L1800–L2312); `optimize_method="invol"` and `"eqwt"` dispatch; `regime.portfolios` switching path (BUG-5 blocker); rebalancing edge cases
-- `R/charts.RP.R`: ~32 uncovered exprs in `chart.GroupWeights` and related
-- `R/charts.GenSA.R`: ~14 uncovered exprs
+- `R/charts.RP.R`: residual uncovered exprs (equal-weight seed comparison branch L217–222)
