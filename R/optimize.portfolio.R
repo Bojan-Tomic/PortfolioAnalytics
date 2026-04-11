@@ -3167,6 +3167,11 @@ optimize.portfolio.rebalancing_v1 <- function(R, constraints, optimize_method = 
   stopifnot("package:foreach" %in% search() || requireNamespace("foreach", quietly = TRUE))
   start_t <- Sys.time()
 
+  # Ensure R is an xts object so that xts-specific operations (endpoints,
+  # index, row-subsetting by integer index) work correctly regardless of the
+  # input class (data.frame, matrix, zoo, timeSeries, …). Fixes issue #25.
+  R <- PerformanceAnalytics::checkData(R)
+
   # store the call for later
   call <- match.call()
   if (optimize_method == "random") {
@@ -3183,6 +3188,12 @@ optimize.portfolio.rebalancing_v1 <- function(R, constraints, optimize_method = 
   if (hasArg(trailing_periods)) {
     trailing_periods <- match.call(expand.dots = TRUE)$trailing_periods
     rolling_window <- trailing_periods
+  }
+
+  # set training_period equal to rolling_window if training_period is NULL
+  # and rolling_window is not NULL. Fixes issue #27 (mirrors v2 behaviour).
+  if (is.null(training_period) & !is.null(rolling_window)) {
+    training_period <- rolling_window
   }
 
   if (is.null(training_period)) {
@@ -3374,6 +3385,14 @@ optimize.portfolio.rebalancing <- function(R, portfolio = NULL, constraints = NU
     # top level portfolio
     portfolio <- portfolio$top.portfolio
   }
+
+  # Ensure R is an xts object so that xts-specific operations (endpoints,
+  # index, row-subsetting by integer index) work correctly regardless of
+  # the input class (data.frame, matrix, zoo, timeSeries, …).
+  # This must happen AFTER the mult.portfolio.spec branch above (which may
+  # replace R with proxy returns) but BEFORE any call to endpoints() or
+  # index(). Fixes issue #25.
+  R <- PerformanceAnalytics::checkData(R)
 
   # Store the call to return later
   call <- match.call()
