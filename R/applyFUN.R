@@ -9,7 +9,7 @@
 #' @param arguments named list of arguments to FUN
 #' @author Ross Bennett
 #' @export
-applyFUN <- function(R, weights, FUN="mean", arguments){
+applyFUN <- function(R, weights, FUN="mean", arguments=NULL){
   nargs <- arguments
   
   moments <- function(R){

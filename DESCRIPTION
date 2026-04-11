@@ -38,7 +38,8 @@ Suggests:
     ROI.plugin.glpk (>= 0.0.2),
     ROI.plugin.quadprog (>= 0.0.2),
     corpcor,
-    testthat,
+    testthat (>= 3.0.0),
+    covr,
     nloptr (>= 1.0.0),
     MASS,
     robustbase,
@@ -66,3 +67,6 @@ URL: https://github.com/braverock/PortfolioAnalytics
 Copyright: (c) 2004-2026
 RoxygenNote: 7.3.3
 Encoding: UTF-8
+Config/testthat/edition: 3
+Config/testthat/parallel: true
+Config/Needs/coverage: covr

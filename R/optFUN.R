@@ -338,13 +338,8 @@ maxret_milp_opt <- function(R, constraints, moments, target, solver="glpk", cont
   if(try(!is.null(constraints$groups), silent=TRUE)){
     n.groups <- length(constraints$groups)
     Amat.group <- matrix(0, nrow=n.groups, ncol=N)
-    k <- 1
-    l <- 0
     for(i in 1:n.groups){
-      j <- constraints$groups[i] 
-      Amat.group[i, k:(l+j)] <- 1
-      k <- l + j + 1
-      l <- k - 1
+      Amat.group[i, constraints$groups[[i]]] <- 1
     }
     if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
     if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)

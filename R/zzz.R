@@ -17,4 +17,4 @@ NULL
 
 "_PACKAGE"
 
-globalVariables(c('filter_constraint'))
+utils::globalVariables(c('filter_constraint'))

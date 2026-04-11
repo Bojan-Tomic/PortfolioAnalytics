@@ -1,6 +1,9 @@
 README
 ================
 
+[![R-CMD-check](https://github.com/braverock/PortfolioAnalytics/workflows/R-CMD-check/badge.svg)](https://github.com/braverock/PortfolioAnalytics/actions)
+[![codecov](https://app.codecov.io/gh/braverock/PortfolioAnalytics/branch/master/graph/badge.svg)](https://app.codecov.io/gh/braverock/PortfolioAnalytics)
+
 This V2.1 version of PortfolioAnalytics is an update to the substantial
 V2.0 version that was released on 2024-07-03. We first describe the V2.0
 features, then discuss the R demo capability, and finally we describe

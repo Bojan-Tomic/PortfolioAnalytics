@@ -113,12 +113,12 @@ chart.Scatter.pso <- function(object, ..., neighbors=NULL, return.col="mean", ri
     wts_index <- grep("w.", columnnames)
     wts <- xtract[, wts_index]
     if(is.na(return.column)){
-      tmpret <- applyFUN(R=R, weights=wts, FUN=return.col)
+      tmpret <- applyFUN(R=R, weights=wts, FUN=return.col, arguments=list())
       xtract <- cbind(tmpret, xtract)
       colnames(xtract)[which(colnames(xtract) == "tmpret")] <- return.col
     }
     if(is.na(risk.column)){
-      tmprisk <- applyFUN(R=R, weights=wts, FUN=risk.col)
+      tmprisk <- applyFUN(R=R, weights=wts, FUN=risk.col, arguments=list())
       xtract <- cbind(tmprisk, xtract)
       colnames(xtract)[which(colnames(xtract) == "tmprisk")] <- risk.col
     }
@@ -146,8 +146,8 @@ chart.Scatter.pso <- function(object, ..., neighbors=NULL, return.col="mean", ri
       arguments <- tmp.args
     }
     # Include risk reward scatter of asset returns
-    asset_ret <- scatterFUN(R=R, FUN=return.col, arguments)
-    asset_risk <- scatterFUN(R=R, FUN=risk.col, arguments)
+    asset_ret <- scatterFUN(R=R, FUN=return.col, arguments=NULL)
+    asset_risk <- scatterFUN(R=R, FUN=risk.col, arguments=NULL)
     xlim <- range(c(xtract[,risk.column], asset_risk))
     ylim <- range(c(xtract[,return.column], asset_ret))
   } else {
@@ -183,8 +183,8 @@ chart.Scatter.pso <- function(object, ..., neighbors=NULL, return.col="mean", ri
     risk.col <- gsub("\\..*", "", risk.col)
     # warning(return.col,' or ', risk.col, ' do  not match extractStats output of $objective_measures slot')
     opt_weights <- object$weights
-    ret <- as.numeric(applyFUN(R=R, weights=opt_weights, FUN=return.col))
-    risk <- as.numeric(applyFUN(R=R, weights=opt_weights, FUN=risk.col))
+    ret <- as.numeric(applyFUN(R=R, weights=opt_weights, FUN=return.col, arguments=list()))
+    risk <- as.numeric(applyFUN(R=R, weights=opt_weights, FUN=risk.col, arguments=list()))
     points(risk, ret, col="blue", pch=16) #optimal
     text(x=risk, y=ret, labels="Optimal",col="blue", pos=4, cex=0.8)
   } else {
