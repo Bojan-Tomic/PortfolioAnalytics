@@ -2,8 +2,8 @@
 # tests/testthat/test-charts-rp.R
 #
 # Source files covered:
-#   R/charts.RP.R       — chart.Weight.RP, chart.Scatter.RP,
-#                          charts.RP, plot.optimize.portfolio.random,
+#   R/PortfolioAnalytics:::charts.RP.R       — PortfolioAnalytics:::chart.Weight.RP, PortfolioAnalytics:::chart.Scatter.RP,
+#                          PortfolioAnalytics:::charts.RP, plot.optimize.portfolio.random,
 #                          plot.optimize.portfolio
 #   R/charts.groups.R   — chart.GroupWeights, barplotGroupWeights
 #   R/charts.multiple.R — chart.Weights.opt.list, barplotOptWeights,
@@ -83,29 +83,29 @@ opt_list_obj <- tryCatch({
 }, error = function(e) NULL)
 
 # ---------------------------------------------------------------------------
-# Tests: R/charts.RP.R — chart.Weight.RP
+# Tests: R/PortfolioAnalytics:::charts.RP.R — PortfolioAnalytics:::chart.Weight.RP
 # (also covers chart.Weights.optimize.portfolio.random, which is an alias)
 # ---------------------------------------------------------------------------
 
-test_that("chart.Weight.RP: line plot (default) runs without error", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: line plot (default) runs without error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.RP(opt_rp_trace, plot.type = "line")
+    PortfolioAnalytics:::chart.Weight.RP(opt_rp_trace, plot.type = "line")
   )
 })
 
-test_that("chart.Weight.RP: barplot variant runs without error", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: barplot variant runs without error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.RP(opt_rp_trace, plot.type = "barplot")
+    PortfolioAnalytics:::chart.Weight.RP(opt_rp_trace, plot.type = "barplot")
   )
 })
 
-test_that("chart.Weight.RP: rejects non-random object with informative error", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: rejects non-random object with informative error", {
   expect_error(
-    chart.Weight.RP(list()),
+    PortfolioAnalytics:::chart.Weight.RP(list()),
     regexp = "object must be of class 'optimize.portfolio.random'"
   )
 })
@@ -113,40 +113,40 @@ test_that("chart.Weight.RP: rejects non-random object with informative error", {
 test_that("chart.Weights dispatch to chart.Weights.optimize.portfolio.random does not error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
-  # chart.Weights.optimize.portfolio.random is an alias for chart.Weight.RP
+  # chart.Weights.optimize.portfolio.random is an alias for PortfolioAnalytics:::chart.Weight.RP
   expect_no_error(
     chart.Weights(opt_rp_trace, plot.type = "line")
   )
 })
 
 # ---------------------------------------------------------------------------
-# Tests: R/charts.RP.R — chart.Scatter.RP
+# Tests: R/PortfolioAnalytics:::charts.RP.R — PortfolioAnalytics:::chart.Scatter.RP
 # (also covers chart.RiskReward.optimize.portfolio.random, which is an alias)
 # NOTE: requires object$R — only available when trace = TRUE
 # ---------------------------------------------------------------------------
 
-test_that("chart.Scatter.RP: runs with mean / ES columns", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: runs with mean / ES columns", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.RP(opt_rp_trace, return.col = "mean", risk.col = "ES")
+    PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace, return.col = "mean", risk.col = "ES")
   )
 })
 
-test_that("chart.Scatter.RP: runs with chart.assets = FALSE (default)", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: runs with chart.assets = FALSE (default)", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                      return.col   = "mean",
                      risk.col     = "ES",
                      chart.assets = FALSE)
   )
 })
 
-test_that("chart.Scatter.RP: rejects non-random object with informative error", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: rejects non-random object with informative error", {
   expect_error(
-    chart.Scatter.RP(list()),
+    PortfolioAnalytics:::chart.Scatter.RP(list()),
     regexp = "object must be of class 'optimize.portfolio.random'"
   )
 })
@@ -154,33 +154,33 @@ test_that("chart.Scatter.RP: rejects non-random object with informative error", 
 test_that("chart.RiskReward dispatch to chart.RiskReward.optimize.portfolio.random does not error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
-  # chart.RiskReward.optimize.portfolio.random is an alias for chart.Scatter.RP
+  # chart.RiskReward.optimize.portfolio.random is an alias for PortfolioAnalytics:::chart.Scatter.RP
   expect_no_error(
     chart.RiskReward(opt_rp_trace, return.col = "mean", risk.col = "ES")
   )
 })
 
 # ---------------------------------------------------------------------------
-# Tests: R/charts.RP.R — charts.RP (composite wrapper)
+# Tests: R/PortfolioAnalytics:::charts.RP.R — PortfolioAnalytics:::charts.RP (composite wrapper)
 # ---------------------------------------------------------------------------
 
-test_that("charts.RP: composite wrapper runs without error", {
+test_that("PortfolioAnalytics:::charts.RP: composite wrapper runs without error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.RP(opt_rp_trace, risk.col = "ES", return.col = "mean")
+    PortfolioAnalytics:::charts.RP(opt_rp_trace, risk.col = "ES", return.col = "mean")
   )
 })
 
-test_that("charts.RP: rejects non-random object with informative error", {
+test_that("PortfolioAnalytics:::charts.RP: rejects non-random object with informative error", {
   expect_error(
-    charts.RP(list(), risk.col = "ES", return.col = "mean"),
+    PortfolioAnalytics:::charts.RP(list(), risk.col = "ES", return.col = "mean"),
     regexp = "RP must be of class optimize.portfolio.random"
   )
 })
 
 # ---------------------------------------------------------------------------
-# Tests: R/charts.RP.R — plot.optimize.portfolio.random
+# Tests: R/PortfolioAnalytics:::charts.RP.R — plot.optimize.portfolio.random
 # ---------------------------------------------------------------------------
 
 test_that("plot.optimize.portfolio.random: runs without error via generic plot()", {
@@ -201,8 +201,8 @@ test_that("plot.optimize.portfolio.random: direct method call runs without error
 })
 
 # ---------------------------------------------------------------------------
-# Tests: R/charts.RP.R — plot.optimize.portfolio
-# (dispatches to charts.RP when given an optimize.portfolio.random object)
+# Tests: R/PortfolioAnalytics:::charts.RP.R — plot.optimize.portfolio
+# (dispatches to PortfolioAnalytics:::charts.RP when given an optimize.portfolio.random object)
 # ---------------------------------------------------------------------------
 
 test_that("plot.optimize.portfolio: runs without error on random object", {
@@ -363,58 +363,58 @@ test_that("chart.RiskReward.opt.list: stops with invalid return.col", {
 })
 
 # ===========================================================================
-# New Section: chart.Scatter.RP with neighbors argument
+# New Section: PortfolioAnalytics:::chart.Scatter.RP with neighbors argument
 # ===========================================================================
 
-test_that("chart.Scatter.RP: neighbors=3 (integer scalar) produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: neighbors=3 (integer scalar) produces no error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                      return.col = "mean",
                      risk.col   = "ES",
                      neighbors  = 3)
   )
 })
 
-test_that("chart.Scatter.RP: neighbors=c(1,2,3) (index vector) produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: neighbors=c(1,2,3) (index vector) produces no error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                      return.col = "mean",
                      risk.col   = "ES",
                      neighbors  = c(1, 2, 3))
   )
 })
 
-test_that("chart.Scatter.RP: chart.assets=TRUE produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: chart.assets=TRUE produces no error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                      return.col   = "mean",
                      risk.col     = "ES",
                      chart.assets = TRUE)
   )
 })
 
-test_that("charts.RP: neighbors=3 propagates through wrapper without error", {
+test_that("PortfolioAnalytics:::charts.RP: neighbors=3 propagates through wrapper without error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.RP(opt_rp_trace,
+    PortfolioAnalytics:::charts.RP(opt_rp_trace,
               risk.col   = "ES",
               return.col = "mean",
               neighbors  = 3)
   )
 })
 
-test_that("charts.RP: chart.assets=TRUE propagates through wrapper without error", {
+test_that("PortfolioAnalytics:::charts.RP: chart.assets=TRUE propagates through wrapper without error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.RP(opt_rp_trace,
+    PortfolioAnalytics:::charts.RP(opt_rp_trace,
               risk.col     = "ES",
               return.col   = "mean",
               chart.assets = TRUE)

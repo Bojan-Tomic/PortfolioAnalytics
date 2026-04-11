@@ -1,14 +1,14 @@
 ###############################################################################
 # tests/testthat/test-charts-gensa-extra.R
 #
-# Additional branch coverage for R/charts.GenSA.R — specifically the
+# Additional branch coverage for R/PortfolioAnalytics:::charts.GenSA.R — specifically the
 # branches NOT yet covered by test-charts-other.R:
 #
-#   chart.Scatter.GenSA: rp=TRUE branch (generates random portfolios)
-#   chart.Scatter.GenSA: chart.assets=TRUE branch
-#   chart.Weight.GenSA:  las <= 1 branch (bottommargin = minmargin)
-#   chart.Weight.GenSA:  Infinite box-constraint branch (ylim from weights)
-#   chart.Scatter.GenSA: no-trace-R stop() branch
+#   PortfolioAnalytics:::chart.Scatter.GenSA: rp=TRUE branch (generates random portfolios)
+#   PortfolioAnalytics:::chart.Scatter.GenSA: chart.assets=TRUE branch
+#   PortfolioAnalytics:::chart.Weight.GenSA:  las <= 1 branch (bottommargin = minmargin)
+#   PortfolioAnalytics:::chart.Weight.GenSA:  Infinite box-constraint branch (ylim from weights)
+#   PortfolioAnalytics:::chart.Scatter.GenSA: no-trace-R stop() branch
 #
 # Copyright (c) 2004-2026 Brian G. Peterson, Peter Carl, Ross Bennett
 # License: GPL-3
@@ -54,7 +54,7 @@ opt_gensa_notrace <- tryCatch({
                      maxit           = 30)
 }, error = function(e) NULL)
 
-# GenSA with infinite box constraints (to hit the Inf ylim branch in chart.Weight.GenSA)
+# GenSA with infinite box constraints (to hit the Inf ylim branch in PortfolioAnalytics:::chart.Weight.GenSA)
 opt_gensa_inf <- tryCatch({
   p <- portfolio.spec(assets = colnames(edhec4))
   p <- add.constraint(p, type = "weight_sum", min_sum = 0.99, max_sum = 1.01)
@@ -70,14 +70,14 @@ opt_gensa_inf <- tryCatch({
 }, error = function(e) NULL)
 
 # ===========================================================================
-# Tests: chart.Scatter.GenSA — rp=TRUE branch
+# Tests: PortfolioAnalytics:::chart.Scatter.GenSA — rp=TRUE branch
 # ===========================================================================
 
-test_that("chart.Scatter.GenSA: rp=TRUE generates random portfolios without error", {
+test_that("PortfolioAnalytics:::chart.Scatter.GenSA: rp=TRUE generates random portfolios without error", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.GenSA(opt_gensa_trace,
+    PortfolioAnalytics:::chart.Scatter.GenSA(opt_gensa_trace,
                         return.col = "mean",
                         risk.col   = "StdDev",
                         rp         = TRUE)
@@ -85,25 +85,25 @@ test_that("chart.Scatter.GenSA: rp=TRUE generates random portfolios without erro
 })
 
 # ===========================================================================
-# Tests: chart.Scatter.GenSA — chart.assets=TRUE branch
+# Tests: PortfolioAnalytics:::chart.Scatter.GenSA — chart.assets=TRUE branch
 # ===========================================================================
 
-test_that("chart.Scatter.GenSA: chart.assets=TRUE produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.GenSA: chart.assets=TRUE produces no error", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.GenSA(opt_gensa_trace,
+    PortfolioAnalytics:::chart.Scatter.GenSA(opt_gensa_trace,
                         return.col   = "mean",
                         risk.col     = "StdDev",
                         chart.assets = TRUE)
   )
 })
 
-test_that("chart.Scatter.GenSA: rp=TRUE and chart.assets=TRUE together produce no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.GenSA: rp=TRUE and chart.assets=TRUE together produce no error", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.GenSA(opt_gensa_trace,
+    PortfolioAnalytics:::chart.Scatter.GenSA(opt_gensa_trace,
                         return.col   = "mean",
                         risk.col     = "StdDev",
                         rp           = TRUE,
@@ -112,14 +112,14 @@ test_that("chart.Scatter.GenSA: rp=TRUE and chart.assets=TRUE together produce n
 })
 
 # ===========================================================================
-# Tests: chart.Scatter.GenSA — stop() when object$R is NULL (no trace)
+# Tests: PortfolioAnalytics:::chart.Scatter.GenSA — stop() when object$R is NULL (no trace)
 # ===========================================================================
 
-test_that("chart.Scatter.GenSA: stops when object$R is NULL (no trace)", {
+test_that("PortfolioAnalytics:::chart.Scatter.GenSA: stops when object$R is NULL (no trace)", {
   skip_if(is.null(opt_gensa_notrace), "opt_gensa_notrace fixture not available")
   # object$R is NULL when trace=FALSE
   expect_error(
-    chart.Scatter.GenSA(opt_gensa_notrace,
+    PortfolioAnalytics:::chart.Scatter.GenSA(opt_gensa_notrace,
                         return.col = "mean",
                         risk.col   = "StdDev"),
     regexp = "Returns object not detected"
@@ -127,81 +127,81 @@ test_that("chart.Scatter.GenSA: stops when object$R is NULL (no trace)", {
 })
 
 # ===========================================================================
-# Tests: chart.Weight.GenSA — las <= 1 branch (bottommargin = minmargin)
+# Tests: PortfolioAnalytics:::chart.Weight.GenSA — las <= 1 branch (bottommargin = minmargin)
 # ===========================================================================
 
-test_that("chart.Weight.GenSA: las=1 uses minmargin (no rotation)", {
+test_that("PortfolioAnalytics:::chart.Weight.GenSA: las=1 uses minmargin (no rotation)", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.GenSA(opt_gensa_trace, las = 1)
+    PortfolioAnalytics:::chart.Weight.GenSA(opt_gensa_trace, las = 1)
   )
 })
 
-test_that("chart.Weight.GenSA: las=0 uses minmargin (no rotation)", {
+test_that("PortfolioAnalytics:::chart.Weight.GenSA: las=0 uses minmargin (no rotation)", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.GenSA(opt_gensa_trace, las = 0)
-  )
-})
-
-# ===========================================================================
-# Tests: chart.Weight.GenSA — xlab non-NULL (minmargin=5 branch)
-# ===========================================================================
-
-test_that("chart.Weight.GenSA: xlab non-NULL (minmargin=5 path)", {
-  skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
-  pdf(NULL); on.exit(dev.off())
-  expect_no_error(
-    chart.Weight.GenSA(opt_gensa_trace, xlab = "Assets")
+    PortfolioAnalytics:::chart.Weight.GenSA(opt_gensa_trace, las = 0)
   )
 })
 
 # ===========================================================================
-# Tests: chart.Weight.GenSA — Infinite box constraints (ylim from weights)
+# Tests: PortfolioAnalytics:::chart.Weight.GenSA — xlab non-NULL (minmargin=5 branch)
 # ===========================================================================
 
-test_that("chart.Weight.GenSA: infinite box constraints use weight-based ylim", {
+test_that("PortfolioAnalytics:::chart.Weight.GenSA: xlab non-NULL (minmargin=5 path)", {
+  skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
+  pdf(NULL); on.exit(dev.off())
+  expect_no_error(
+    PortfolioAnalytics:::chart.Weight.GenSA(opt_gensa_trace, xlab = "Assets")
+  )
+})
+
+# ===========================================================================
+# Tests: PortfolioAnalytics:::chart.Weight.GenSA — Infinite box constraints (ylim from weights)
+# ===========================================================================
+
+test_that("PortfolioAnalytics:::chart.Weight.GenSA: infinite box constraints use weight-based ylim", {
   skip_if(is.null(opt_gensa_inf), "opt_gensa_inf fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.GenSA(opt_gensa_inf, plot.type = "line")
+    PortfolioAnalytics:::chart.Weight.GenSA(opt_gensa_inf, plot.type = "line")
   )
 })
 
 # ===========================================================================
-# Tests: chart.Weight.GenSA — empty/blank main (topmargin=1 branch)
+# Tests: PortfolioAnalytics:::chart.Weight.GenSA — empty/blank main (topmargin=1 branch)
 # ===========================================================================
 
-test_that("chart.Weight.GenSA: main='' uses topmargin=1", {
+test_that("PortfolioAnalytics:::chart.Weight.GenSA: main='' uses topmargin=1", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.GenSA(opt_gensa_trace, main = "")
+    PortfolioAnalytics:::chart.Weight.GenSA(opt_gensa_trace, main = "")
   )
 })
 
 # ===========================================================================
-# Tests: charts.GenSA with rp=TRUE and chart.assets=TRUE
+# Tests: PortfolioAnalytics:::charts.GenSA with rp=TRUE and chart.assets=TRUE
 # ===========================================================================
 
-test_that("charts.GenSA: rp=TRUE propagates to chart.Scatter.GenSA without error", {
+test_that("PortfolioAnalytics:::charts.GenSA: rp=TRUE propagates to PortfolioAnalytics:::chart.Scatter.GenSA without error", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.GenSA(opt_gensa_trace,
+    PortfolioAnalytics:::charts.GenSA(opt_gensa_trace,
                  rp         = TRUE,
                  return.col = "mean",
                  risk.col   = "StdDev")
   )
 })
 
-test_that("charts.GenSA: chart.assets=TRUE propagates without error", {
+test_that("PortfolioAnalytics:::charts.GenSA: chart.assets=TRUE propagates without error", {
   skip_if(is.null(opt_gensa_trace), "opt_gensa_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.GenSA(opt_gensa_trace,
+    PortfolioAnalytics:::charts.GenSA(opt_gensa_trace,
                  chart.assets = TRUE,
                  return.col   = "mean",
                  risk.col     = "StdDev")

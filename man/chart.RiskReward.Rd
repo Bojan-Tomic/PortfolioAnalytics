@@ -4,15 +4,33 @@
 %   R/charts.multiple.R
 \name{chart.RiskReward}
 \alias{chart.RiskReward}
+\alias{chart.Scatter.DE}
 \alias{chart.RiskReward.optimize.portfolio.DEoptim}
+\alias{chart.Scatter.GenSA}
 \alias{chart.RiskReward.optimize.portfolio.GenSA}
+\alias{chart.Scatter.pso}
 \alias{chart.RiskReward.optimize.portfolio.pso}
+\alias{chart.Scatter.ROI}
 \alias{chart.RiskReward.optimize.portfolio.ROI}
+\alias{chart.Scatter.RP}
 \alias{chart.RiskReward.optimize.portfolio.random}
 \alias{chart.RiskReward.opt.list}
 \title{classic risk reward scatter}
 \usage{
 chart.RiskReward(object, ...)
+
+chart.Scatter.DE(
+  object,
+  ...,
+  neighbors = NULL,
+  return.col = "mean",
+  risk.col = "ES",
+  chart.assets = FALSE,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  xlim = NULL,
+  ylim = NULL
+)
 
 \method{chart.RiskReward}{optimize.portfolio.DEoptim}(
   object,
@@ -25,6 +43,20 @@ chart.RiskReward(object, ...)
   cex.axis = 0.8,
   xlim = NULL,
   ylim = NULL
+)
+
+chart.Scatter.GenSA(
+  object,
+  ...,
+  neighbors = NULL,
+  return.col = "mean",
+  risk.col = "ES",
+  chart.assets = FALSE,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  ylim = NULL,
+  xlim = NULL,
+  rp = FALSE
 )
 
 \method{chart.RiskReward}{optimize.portfolio.GenSA}(
@@ -41,6 +73,19 @@ chart.RiskReward(object, ...)
   rp = FALSE
 )
 
+chart.Scatter.pso(
+  object,
+  ...,
+  neighbors = NULL,
+  return.col = "mean",
+  risk.col = "ES",
+  chart.assets = FALSE,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  xlim = NULL,
+  ylim = NULL
+)
+
 \method{chart.RiskReward}{optimize.portfolio.pso}(
   object,
   ...,
@@ -52,6 +97,20 @@ chart.RiskReward(object, ...)
   cex.axis = 0.8,
   xlim = NULL,
   ylim = NULL
+)
+
+chart.Scatter.ROI(
+  object,
+  ...,
+  neighbors = NULL,
+  return.col = "mean",
+  risk.col = "ES",
+  chart.assets = FALSE,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  xlim = NULL,
+  ylim = NULL,
+  rp = FALSE
 )
 
 \method{chart.RiskReward}{optimize.portfolio.ROI}(
@@ -66,6 +125,19 @@ chart.RiskReward(object, ...)
   xlim = NULL,
   ylim = NULL,
   rp = FALSE
+)
+
+chart.Scatter.RP(
+  object,
+  ...,
+  neighbors = NULL,
+  return.col = "mean",
+  risk.col = "ES",
+  chart.assets = FALSE,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  xlim = NULL,
+  ylim = NULL
 )
 
 \method{chart.RiskReward}{optimize.portfolio.random}(

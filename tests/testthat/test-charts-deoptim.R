@@ -2,8 +2,8 @@
 # tests/testthat/test-charts-deoptim.R
 #
 # Source files covered:
-#   R/charts.DE.R     — chart.Weight.DE, chart.Scatter.DE,
-#                        charts.DE, plot.optimize.portfolio.DEoptim
+#   R/PortfolioAnalytics:::charts.DE.R     — PortfolioAnalytics:::chart.Weight.DE, PortfolioAnalytics:::chart.Scatter.DE,
+#                        PortfolioAnalytics:::charts.DE, plot.optimize.portfolio.DEoptim
 #   R/charts.risk.R   — chart.RiskBudget (single-period, rebalancing, opt.list)
 #
 # All chart tests redirect graphics to a null PDF device.
@@ -22,7 +22,7 @@ skip_if_not_installed("DEoptim")
 # File-scope fixtures — built once, reused across all test_that blocks.
 # =============================================================================
 
-# DEoptim result with trace=TRUE  (for chart.Scatter.DE and charts.DE wrapper)
+# DEoptim result with trace=TRUE  (for PortfolioAnalytics:::chart.Scatter.DE and PortfolioAnalytics:::charts.DE wrapper)
 # Keep itermax small (50) for speed. Portfolio needs mean + ES objectives so
 # extractStats() output has "mean" and "ES" columns.
 opt_de_trace <- tryCatch({
@@ -139,51 +139,51 @@ test_that("opt_rb_rebal is an optimize.portfolio.rebalancing object", {
 })
 
 # =============================================================================
-# charts.DE.R — chart.Weight.DE
+# PortfolioAnalytics:::charts.DE.R — PortfolioAnalytics:::chart.Weight.DE
 # =============================================================================
 
-test_that("chart.Weight.DE plot.type='line' (default) does not error", {
+test_that("PortfolioAnalytics:::chart.Weight.DE plot.type='line' (default) does not error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.DE(opt_de_trace, plot.type = "line")
+    PortfolioAnalytics:::chart.Weight.DE(opt_de_trace, plot.type = "line")
   )
 })
 
-test_that("chart.Weight.DE plot.type='barplot' does not error", {
+test_that("PortfolioAnalytics:::chart.Weight.DE plot.type='barplot' does not error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.DE(opt_de_trace, plot.type = "barplot")
+    PortfolioAnalytics:::chart.Weight.DE(opt_de_trace, plot.type = "barplot")
   )
 })
 
 test_that("chart.Weights dispatch to chart.Weights.optimize.portfolio.DEoptim does not error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
-  # chart.Weights.optimize.portfolio.DEoptim is an alias for chart.Weight.DE
+  # chart.Weights.optimize.portfolio.DEoptim is an alias for PortfolioAnalytics:::chart.Weight.DE
   expect_no_error(
     chart.Weights(opt_de_trace, plot.type = "line")
   )
 })
 
 # =============================================================================
-# charts.DE.R — chart.Scatter.DE / chart.RiskReward.optimize.portfolio.DEoptim
+# PortfolioAnalytics:::charts.DE.R — PortfolioAnalytics:::chart.Scatter.DE / chart.RiskReward.optimize.portfolio.DEoptim
 # =============================================================================
 
-test_that("chart.Scatter.DE with return.col='mean' risk.col='ES' does not error", {
+test_that("PortfolioAnalytics:::chart.Scatter.DE with return.col='mean' risk.col='ES' does not error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.DE(opt_de_trace, return.col = "mean", risk.col = "ES")
+    PortfolioAnalytics:::chart.Scatter.DE(opt_de_trace, return.col = "mean", risk.col = "ES")
   )
 })
 
-test_that("chart.Scatter.DE with chart.assets=FALSE does not error", {
+test_that("PortfolioAnalytics:::chart.Scatter.DE with chart.assets=FALSE does not error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.DE(opt_de_trace,
+    PortfolioAnalytics:::chart.Scatter.DE(opt_de_trace,
                      return.col   = "mean",
                      risk.col     = "ES",
                      chart.assets = FALSE)
@@ -193,32 +193,32 @@ test_that("chart.Scatter.DE with chart.assets=FALSE does not error", {
 test_that("chart.RiskReward dispatch to chart.RiskReward.optimize.portfolio.DEoptim does not error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
-  # chart.RiskReward.optimize.portfolio.DEoptim is an alias for chart.Scatter.DE
+  # chart.RiskReward.optimize.portfolio.DEoptim is an alias for PortfolioAnalytics:::chart.Scatter.DE
   expect_no_error(
     chart.RiskReward(opt_de_trace, return.col = "mean", risk.col = "ES")
   )
 })
 
 # =============================================================================
-# charts.DE.R — charts.DE (composite wrapper)
+# PortfolioAnalytics:::charts.DE.R — PortfolioAnalytics:::charts.DE (composite wrapper)
 # =============================================================================
 
-test_that("charts.DE does not error", {
+test_that("PortfolioAnalytics:::charts.DE does not error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.DE(opt_de_trace,
+    PortfolioAnalytics:::charts.DE(opt_de_trace,
               risk.col     = "ES",
               return.col   = "mean",
               chart.assets = FALSE)
   )
 })
 
-test_that("charts.DE passes main argument without error", {
+test_that("PortfolioAnalytics:::charts.DE passes main argument without error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.DE(opt_de_trace,
+    PortfolioAnalytics:::charts.DE(opt_de_trace,
               risk.col     = "ES",
               return.col   = "mean",
               chart.assets = FALSE,
@@ -227,7 +227,7 @@ test_that("charts.DE passes main argument without error", {
 })
 
 # =============================================================================
-# charts.DE.R — plot.optimize.portfolio.DEoptim (S3 plot method)
+# PortfolioAnalytics:::charts.DE.R — plot.optimize.portfolio.DEoptim (S3 plot method)
 # =============================================================================
 
 test_that("plot.optimize.portfolio.DEoptim does not error", {
@@ -372,47 +372,47 @@ test_that("chart.RiskBudget.opt.list with legend does not error", {
 })
 
 # ===========================================================================
-# New Section: chart.Scatter.DE with neighbors argument
+# New Section: PortfolioAnalytics:::chart.Scatter.DE with neighbors argument
 # ===========================================================================
 
-test_that("chart.Scatter.DE: neighbors=3 (integer scalar) produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.DE: neighbors=3 (integer scalar) produces no error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.DE(opt_de_trace,
+    PortfolioAnalytics:::chart.Scatter.DE(opt_de_trace,
                      return.col = "mean",
                      risk.col   = "ES",
                      neighbors  = 3)
   )
 })
 
-test_that("chart.Scatter.DE: neighbors=c(1,2,3) (index vector) produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.DE: neighbors=c(1,2,3) (index vector) produces no error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.DE(opt_de_trace,
+    PortfolioAnalytics:::chart.Scatter.DE(opt_de_trace,
                      return.col = "mean",
                      risk.col   = "ES",
                      neighbors  = c(1, 2, 3))
   )
 })
 
-test_that("chart.Scatter.DE: chart.assets=TRUE produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.DE: chart.assets=TRUE produces no error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.DE(opt_de_trace,
+    PortfolioAnalytics:::chart.Scatter.DE(opt_de_trace,
                      return.col   = "mean",
                      risk.col     = "ES",
                      chart.assets = TRUE)
   )
 })
 
-test_that("charts.DE: neighbors=3 propagates through wrapper without error", {
+test_that("PortfolioAnalytics:::charts.DE: neighbors=3 propagates through wrapper without error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.DE(opt_de_trace,
+    PortfolioAnalytics:::charts.DE(opt_de_trace,
               risk.col     = "ES",
               return.col   = "mean",
               neighbors    = 3,
@@ -420,11 +420,11 @@ test_that("charts.DE: neighbors=3 propagates through wrapper without error", {
   )
 })
 
-test_that("chart.Weight.DE: neighbors=3 in weight chart produces no error", {
+test_that("PortfolioAnalytics:::chart.Weight.DE: neighbors=3 in weight chart produces no error", {
   skip_if(is.null(opt_de_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.DE(opt_de_trace,
+    PortfolioAnalytics:::chart.Weight.DE(opt_de_trace,
                     neighbors = 3)
   )
 })

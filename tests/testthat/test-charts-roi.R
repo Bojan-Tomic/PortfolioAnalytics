@@ -2,8 +2,8 @@
 # tests/testthat/test-charts-roi.R
 #
 # Source files covered:
-#   R/charts.ROI.R              — chart.Weight.ROI, chart.Scatter.ROI,
-#                                  charts.ROI, plot.optimize.portfolio.ROI
+#   R/PortfolioAnalytics:::charts.ROI.R              — PortfolioAnalytics:::chart.Weight.ROI, PortfolioAnalytics:::chart.Scatter.ROI,
+#                                  PortfolioAnalytics:::charts.ROI, plot.optimize.portfolio.ROI
 #   R/charts.efficient.frontier.R — chart.EfficientFrontier (ROI, CVXR,
 #                                  default/RP methods), chart.EF.Weights
 #
@@ -50,25 +50,25 @@ ef_meanvar <- tryCatch(
 )
 
 # ===========================================================================
-# 1.  chart.Weight.ROI / chart.Weights.optimize.portfolio.ROI
+# 1.  PortfolioAnalytics:::chart.Weight.ROI / chart.Weights.optimize.portfolio.ROI
 # ===========================================================================
 
-test_that("chart.Weight.ROI: line plot (default) produces no error", {
+test_that("PortfolioAnalytics:::chart.Weight.ROI: line plot (default) produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Weight.ROI(opt_roi_trace, plot.type = "line"))
+  expect_no_error(PortfolioAnalytics:::chart.Weight.ROI(opt_roi_trace, plot.type = "line"))
 })
 
-test_that("chart.Weight.ROI: barplot type produces no error", {
+test_that("PortfolioAnalytics:::chart.Weight.ROI: barplot type produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Weight.ROI(opt_roi_trace, plot.type = "barplot"))
+  expect_no_error(PortfolioAnalytics:::chart.Weight.ROI(opt_roi_trace, plot.type = "barplot"))
 })
 
-test_that("chart.Weight.ROI: bar type alias produces no error", {
+test_that("PortfolioAnalytics:::chart.Weight.ROI: bar type alias produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Weight.ROI(opt_roi_trace, plot.type = "bar"))
+  expect_no_error(PortfolioAnalytics:::chart.Weight.ROI(opt_roi_trace, plot.type = "bar"))
 })
 
 test_that("chart.Weights.optimize.portfolio.ROI: S3 dispatch via chart.Weights() works", {
@@ -83,51 +83,51 @@ test_that("chart.Weights.optimize.portfolio.ROI: barplot via chart.Weights() wor
   expect_no_error(chart.Weights(opt_roi_trace, plot.type = "barplot"))
 })
 
-test_that("chart.Weight.ROI: stops for non-ROI object", {
+test_that("PortfolioAnalytics:::chart.Weight.ROI: stops for non-ROI object", {
   expect_error(
-    chart.Weight.ROI(list()),
+    PortfolioAnalytics:::chart.Weight.ROI(list()),
     "optimize.portfolio.ROI"
   )
 })
 
 # ===========================================================================
-# 2.  chart.Scatter.ROI / chart.RiskReward.optimize.portfolio.ROI
+# 2.  PortfolioAnalytics:::chart.Scatter.ROI / chart.RiskReward.optimize.portfolio.ROI
 # ===========================================================================
 
-test_that("chart.Scatter.ROI: default args (risk.col='ES') produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.ROI: default args (risk.col='ES') produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Scatter.ROI(opt_roi_trace))
+  expect_no_error(PortfolioAnalytics:::chart.Scatter.ROI(opt_roi_trace))
 })
 
-test_that("chart.Scatter.ROI: risk.col='StdDev' produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.ROI: risk.col='StdDev' produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.ROI(opt_roi_trace, risk.col = "StdDev", return.col = "mean")
+    PortfolioAnalytics:::chart.Scatter.ROI(opt_roi_trace, risk.col = "StdDev", return.col = "mean")
   )
 })
 
-test_that("chart.Scatter.ROI: chart.assets=TRUE produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.ROI: chart.assets=TRUE produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.ROI(opt_roi_trace, chart.assets = TRUE)
+    PortfolioAnalytics:::chart.Scatter.ROI(opt_roi_trace, chart.assets = TRUE)
   )
 })
 
-test_that("chart.Scatter.ROI: chart.assets=TRUE with StdDev produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.ROI: chart.assets=TRUE with StdDev produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.ROI(opt_roi_trace,
+    PortfolioAnalytics:::chart.Scatter.ROI(opt_roi_trace,
                       risk.col    = "StdDev",
                       return.col  = "mean",
                       chart.assets = TRUE)
   )
 })
 
-test_that("chart.Scatter.ROI: stops when trace=FALSE (R is NULL)", {
+test_that("PortfolioAnalytics:::chart.Scatter.ROI: stops when trace=FALSE (R is NULL)", {
   # Build a result without trace so object$R is NULL
   opt_no_trace <- tryCatch(
     optimize.portfolio(edhec4, .portf_meansd4,
@@ -137,14 +137,14 @@ test_that("chart.Scatter.ROI: stops when trace=FALSE (R is NULL)", {
   )
   skip_if(is.null(opt_no_trace))
   expect_error(
-    chart.Scatter.ROI(opt_no_trace),
+    PortfolioAnalytics:::chart.Scatter.ROI(opt_no_trace),
     "trace=TRUE"
   )
 })
 
-test_that("chart.Scatter.ROI: stops for non-ROI object", {
+test_that("PortfolioAnalytics:::chart.Scatter.ROI: stops for non-ROI object", {
   expect_error(
-    chart.Scatter.ROI(list()),
+    PortfolioAnalytics:::chart.Scatter.ROI(list()),
     "optimize.portfolio.ROI"
   )
 })
@@ -164,32 +164,32 @@ test_that("chart.RiskReward.optimize.portfolio.ROI: chart.assets=TRUE works", {
 })
 
 # ===========================================================================
-# 3.  charts.ROI
+# 3.  PortfolioAnalytics:::charts.ROI
 # ===========================================================================
 
-test_that("charts.ROI: default args (risk.col='ES') produce no error", {
+test_that("PortfolioAnalytics:::charts.ROI: default args (risk.col='ES') produce no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(charts.ROI(opt_roi_trace))
+  expect_no_error(PortfolioAnalytics:::charts.ROI(opt_roi_trace))
 })
 
-test_that("charts.ROI: risk.col='StdDev' produces no error", {
+test_that("PortfolioAnalytics:::charts.ROI: risk.col='StdDev' produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(charts.ROI(opt_roi_trace, risk.col = "StdDev"))
+  expect_no_error(PortfolioAnalytics:::charts.ROI(opt_roi_trace, risk.col = "StdDev"))
 })
 
-test_that("charts.ROI: chart.assets=TRUE produces no error", {
+test_that("PortfolioAnalytics:::charts.ROI: chart.assets=TRUE produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(charts.ROI(opt_roi_trace, chart.assets = TRUE))
+  expect_no_error(PortfolioAnalytics:::charts.ROI(opt_roi_trace, chart.assets = TRUE))
 })
 
-test_that("charts.ROI: custom main title produces no error", {
+test_that("PortfolioAnalytics:::charts.ROI: custom main title produces no error", {
   skip_if(is.null(opt_roi_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.ROI(opt_roi_trace, main = "Test Portfolio", risk.col = "StdDev")
+    PortfolioAnalytics:::charts.ROI(opt_roi_trace, main = "Test Portfolio", risk.col = "StdDev")
   )
 })
 

@@ -2,10 +2,10 @@
 # tests/testthat/test-charts-other.R
 #
 # Source files covered:
-#   R/charts.PSO.R         — chart.Weight.pso, chart.Scatter.pso,
-#                             charts.pso, plot.optimize.portfolio.pso
-#   R/charts.GenSA.R       — chart.Weight.GenSA, chart.Scatter.GenSA,
-#                             charts.GenSA, plot.optimize.portfolio.GenSA
+#   R/charts.PSO.R         — PortfolioAnalytics:::chart.Weight.pso, PortfolioAnalytics:::chart.Scatter.pso,
+#                             PortfolioAnalytics:::charts.pso, plot.optimize.portfolio.pso
+#   R/PortfolioAnalytics:::charts.GenSA.R       — PortfolioAnalytics:::chart.Weight.GenSA, PortfolioAnalytics:::chart.Scatter.GenSA,
+#                             PortfolioAnalytics:::charts.GenSA, plot.optimize.portfolio.GenSA
 #   R/chart.Weights.R      — chart.Weights generic, barplotWeights,
 #                             chart.Weights.optimize.portfolio.rebalancing
 #   R/chart.concentration.R — chart.Concentration
@@ -25,7 +25,7 @@ library(PortfolioAnalytics)
 # Local fixtures
 # ---------------------------------------------------------------------------
 
-# PSO result WITH trace=TRUE (for chart.Scatter.pso which accesses object$R
+# PSO result WITH trace=TRUE (for PortfolioAnalytics:::chart.Scatter.pso which accesses object$R
 # and calls extractStats, which requires object$PSOoutput).
 # Uses a mean+StdDev spec so extractStats has a "mean" column.
 opt_pso_trace <- NULL
@@ -44,7 +44,7 @@ if (requireNamespace("pso", quietly = TRUE)) {
   }, error = function(e) NULL)
 }
 
-# GenSA result WITH trace=TRUE (for chart.Scatter.GenSA which accesses
+# GenSA result WITH trace=TRUE (for PortfolioAnalytics:::chart.Scatter.GenSA which accesses
 # object$R and computes risk/return via applyFUN).
 # Uses a mean+StdDev spec so return.col="mean" and risk.col="StdDev" resolve.
 opt_gensa_trace <- NULL
@@ -84,28 +84,28 @@ opt_rebal <- tryCatch({
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# 1.1  chart.Weight.pso — line plot
+# 1.1  PortfolioAnalytics:::chart.Weight.pso — line plot
 # ---------------------------------------------------------------------------
 
-test_that("chart.Weight.pso renders a line plot without error", {
+test_that("PortfolioAnalytics:::chart.Weight.pso renders a line plot without error", {
   skip_if_not_installed("pso")
   skip_if(is.null(opt_pso))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.pso(opt_pso, plot.type = "line")
+    PortfolioAnalytics:::chart.Weight.pso(opt_pso, plot.type = "line")
   )
 })
 
 # ---------------------------------------------------------------------------
-# 1.2  chart.Weight.pso — barplot (also exercises barplotWeights)
+# 1.2  PortfolioAnalytics:::chart.Weight.pso — barplot (also exercises barplotWeights)
 # ---------------------------------------------------------------------------
 
-test_that("chart.Weight.pso renders a barplot without error", {
+test_that("PortfolioAnalytics:::chart.Weight.pso renders a barplot without error", {
   skip_if_not_installed("pso")
   skip_if(is.null(opt_pso))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.pso(opt_pso, plot.type = "barplot")
+    PortfolioAnalytics:::chart.Weight.pso(opt_pso, plot.type = "barplot")
   )
 })
 
@@ -123,36 +123,36 @@ test_that("chart.Weights dispatches to the pso method without error", {
 })
 
 # ---------------------------------------------------------------------------
-# 1.4  chart.Scatter.pso — requires trace=TRUE (object$R + PSOoutput)
+# 1.4  PortfolioAnalytics:::chart.Scatter.pso — requires trace=TRUE (object$R + PSOoutput)
 #      return.col="mean" and risk.col="StdDev" match the p_pso spec above.
 # ---------------------------------------------------------------------------
 
-test_that("chart.Scatter.pso renders without error using opt_pso_trace", {
+test_that("PortfolioAnalytics:::chart.Scatter.pso renders without error using opt_pso_trace", {
   skip_if(is.null(opt_pso_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.pso(opt_pso_trace,
+    PortfolioAnalytics:::chart.Scatter.pso(opt_pso_trace,
                       return.col = "mean",
                       risk.col   = "StdDev")
   )
 })
 
 # ---------------------------------------------------------------------------
-# 1.5  charts.pso — combined scatter + weight layout wrapper
+# 1.5  PortfolioAnalytics:::charts.pso — combined scatter + weight layout wrapper
 # ---------------------------------------------------------------------------
 
-test_that("charts.pso renders combined scatter and weight charts without error", {
+test_that("PortfolioAnalytics:::charts.pso renders combined scatter and weight charts without error", {
   skip_if(is.null(opt_pso_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.pso(opt_pso_trace,
+    PortfolioAnalytics:::charts.pso(opt_pso_trace,
                return.col = "mean",
                risk.col   = "StdDev")
   )
 })
 
 # ---------------------------------------------------------------------------
-# 1.6  plot.optimize.portfolio.pso — S3 plot() wrapper for charts.pso
+# 1.6  plot.optimize.portfolio.pso — S3 plot() wrapper for PortfolioAnalytics:::charts.pso
 # ---------------------------------------------------------------------------
 
 test_that("plot.optimize.portfolio.pso renders without error", {
@@ -166,32 +166,32 @@ test_that("plot.optimize.portfolio.pso renders without error", {
 })
 
 # ===========================================================================
-# Section 2: charts.GenSA.R
+# Section 2: PortfolioAnalytics:::charts.GenSA.R
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# 2.1  chart.Weight.GenSA — line plot
+# 2.1  PortfolioAnalytics:::chart.Weight.GenSA — line plot
 # ---------------------------------------------------------------------------
 
-test_that("chart.Weight.GenSA renders a line plot without error", {
+test_that("PortfolioAnalytics:::chart.Weight.GenSA renders a line plot without error", {
   skip_if_not_installed("GenSA")
   skip_if(is.null(opt_gensa))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.GenSA(opt_gensa, plot.type = "line")
+    PortfolioAnalytics:::chart.Weight.GenSA(opt_gensa, plot.type = "line")
   )
 })
 
 # ---------------------------------------------------------------------------
-# 2.2  chart.Weight.GenSA — barplot (also exercises barplotWeights)
+# 2.2  PortfolioAnalytics:::chart.Weight.GenSA — barplot (also exercises barplotWeights)
 # ---------------------------------------------------------------------------
 
-test_that("chart.Weight.GenSA renders a barplot without error", {
+test_that("PortfolioAnalytics:::chart.Weight.GenSA renders a barplot without error", {
   skip_if_not_installed("GenSA")
   skip_if(is.null(opt_gensa))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.GenSA(opt_gensa, plot.type = "barplot")
+    PortfolioAnalytics:::chart.Weight.GenSA(opt_gensa, plot.type = "barplot")
   )
 })
 
@@ -209,36 +209,36 @@ test_that("chart.Weights dispatches to the GenSA method without error", {
 })
 
 # ---------------------------------------------------------------------------
-# 2.4  chart.Scatter.GenSA — requires trace=TRUE (object$R)
+# 2.4  PortfolioAnalytics:::chart.Scatter.GenSA — requires trace=TRUE (object$R)
 #      return.col="mean" and risk.col="StdDev" match the p_gensa spec above.
 # ---------------------------------------------------------------------------
 
-test_that("chart.Scatter.GenSA renders without error using opt_gensa_trace", {
+test_that("PortfolioAnalytics:::chart.Scatter.GenSA renders without error using opt_gensa_trace", {
   skip_if(is.null(opt_gensa_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.GenSA(opt_gensa_trace,
+    PortfolioAnalytics:::chart.Scatter.GenSA(opt_gensa_trace,
                         return.col = "mean",
                         risk.col   = "StdDev")
   )
 })
 
 # ---------------------------------------------------------------------------
-# 2.5  charts.GenSA — combined scatter + weight layout wrapper
+# 2.5  PortfolioAnalytics:::charts.GenSA — combined scatter + weight layout wrapper
 # ---------------------------------------------------------------------------
 
-test_that("charts.GenSA renders combined scatter and weight charts without error", {
+test_that("PortfolioAnalytics:::charts.GenSA renders combined scatter and weight charts without error", {
   skip_if(is.null(opt_gensa_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.GenSA(opt_gensa_trace,
+    PortfolioAnalytics:::charts.GenSA(opt_gensa_trace,
                  return.col = "mean",
                  risk.col   = "StdDev")
   )
 })
 
 # ---------------------------------------------------------------------------
-# 2.6  plot.optimize.portfolio.GenSA — S3 plot() wrapper for charts.GenSA
+# 2.6  plot.optimize.portfolio.GenSA — S3 plot() wrapper for PortfolioAnalytics:::charts.GenSA
 # ---------------------------------------------------------------------------
 
 test_that("plot.optimize.portfolio.GenSA renders without error", {
@@ -345,7 +345,7 @@ test_that("chart.Concentration with conc.type pct_contrib is skipped when no pct
 # ---------------------------------------------------------------------------
 # 5.1  chart.RiskReward generic — UseMethod dispatcher
 #      Calling chart.RiskReward() on an optimize.portfolio.ROI object
-#      dispatches to chart.RiskReward.optimize.portfolio.ROI (= chart.Scatter.ROI).
+#      dispatches to chart.RiskReward.optimize.portfolio.ROI (= PortfolioAnalytics:::chart.Scatter.ROI).
 #      opt_roi_trace has trace=TRUE so object$R is available.
 #      risk.col="StdDev" matches the .portf_meansd4 spec used to build it.
 # ---------------------------------------------------------------------------
@@ -361,7 +361,7 @@ test_that("chart.RiskReward generic dispatches to the ROI method without error",
 })
 
 # ---------------------------------------------------------------------------
-# 5.2  chart.RiskReward — dispatches to the pso method via chart.Scatter.pso
+# 5.2  chart.RiskReward — dispatches to the pso method via PortfolioAnalytics:::chart.Scatter.pso
 #      Verifies that chart.RiskReward.optimize.portfolio.pso is registered.
 # ---------------------------------------------------------------------------
 
@@ -376,7 +376,7 @@ test_that("chart.RiskReward dispatches to the pso method without error", {
 })
 
 # ---------------------------------------------------------------------------
-# 5.3  chart.RiskReward — dispatches to the GenSA method via chart.Scatter.GenSA
+# 5.3  chart.RiskReward — dispatches to the GenSA method via PortfolioAnalytics:::chart.Scatter.GenSA
 #      Verifies that chart.RiskReward.optimize.portfolio.GenSA is registered.
 # ---------------------------------------------------------------------------
 
@@ -391,47 +391,47 @@ test_that("chart.RiskReward dispatches to the GenSA method without error", {
 })
 
 # ===========================================================================
-# Section 6: chart.Scatter.pso with neighbors argument
+# Section 6: PortfolioAnalytics:::chart.Scatter.pso with neighbors argument
 # ===========================================================================
 
-test_that("chart.Scatter.pso: neighbors=3 (integer scalar) produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.pso: neighbors=3 (integer scalar) produces no error", {
   skip_if(is.null(opt_pso_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.pso(opt_pso_trace,
+    PortfolioAnalytics:::chart.Scatter.pso(opt_pso_trace,
                       return.col = "mean",
                       risk.col   = "StdDev",
                       neighbors  = 3)
   )
 })
 
-test_that("chart.Scatter.pso: neighbors=c(1,2,3) (index vector) produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.pso: neighbors=c(1,2,3) (index vector) produces no error", {
   skip_if(is.null(opt_pso_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.pso(opt_pso_trace,
+    PortfolioAnalytics:::chart.Scatter.pso(opt_pso_trace,
                       return.col = "mean",
                       risk.col   = "StdDev",
                       neighbors  = c(1, 2, 3))
   )
 })
 
-test_that("chart.Scatter.pso: chart.assets=TRUE produces no error", {
+test_that("PortfolioAnalytics:::chart.Scatter.pso: chart.assets=TRUE produces no error", {
   skip_if(is.null(opt_pso_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.pso(opt_pso_trace,
+    PortfolioAnalytics:::chart.Scatter.pso(opt_pso_trace,
                       return.col   = "mean",
                       risk.col     = "StdDev",
                       chart.assets = TRUE)
   )
 })
 
-test_that("charts.pso: neighbors=3 propagates through wrapper without error", {
+test_that("PortfolioAnalytics:::charts.pso: neighbors=3 propagates through wrapper without error", {
   skip_if(is.null(opt_pso_trace))
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    charts.pso(opt_pso_trace,
+    PortfolioAnalytics:::charts.pso(opt_pso_trace,
                return.col = "mean",
                risk.col   = "StdDev",
                neighbors  = 3)

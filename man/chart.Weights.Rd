@@ -5,10 +5,15 @@
 \name{chart.Weights}
 \alias{chart.Weights}
 \alias{chart.Weights.optimize.portfolio.rebalancing}
+\alias{chart.Weight.DE}
 \alias{chart.Weights.optimize.portfolio.DEoptim}
+\alias{chart.Weight.GenSA}
 \alias{chart.Weights.optimize.portfolio.GenSA}
+\alias{chart.Weight.pso}
 \alias{chart.Weights.optimize.portfolio.pso}
+\alias{chart.Weight.ROI}
 \alias{chart.Weights.optimize.portfolio.ROI}
+\alias{chart.Weight.RP}
 \alias{chart.Weights.optimize.portfolio.random}
 \alias{chart.Weights.opt.list}
 \title{boxplot of the weights of the optimal portfolios}
@@ -17,7 +22,39 @@ chart.Weights(object, ...)
 
 \method{chart.Weights}{optimize.portfolio.rebalancing}(object, ..., main = "Weights")
 
+chart.Weight.DE(
+  object,
+  ...,
+  neighbors = NULL,
+  main = "Weights",
+  las = 3,
+  xlab = NULL,
+  cex.lab = 1,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  colorset = NULL,
+  legend.loc = "topright",
+  cex.legend = 0.8,
+  plot.type = "line"
+)
+
 \method{chart.Weights}{optimize.portfolio.DEoptim}(
+  object,
+  ...,
+  neighbors = NULL,
+  main = "Weights",
+  las = 3,
+  xlab = NULL,
+  cex.lab = 1,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  colorset = NULL,
+  legend.loc = "topright",
+  cex.legend = 0.8,
+  plot.type = "line"
+)
+
+chart.Weight.GenSA(
   object,
   ...,
   neighbors = NULL,
@@ -49,6 +86,22 @@ chart.Weights(object, ...)
   plot.type = "line"
 )
 
+chart.Weight.pso(
+  object,
+  ...,
+  neighbors = NULL,
+  main = "Weights",
+  las = 3,
+  xlab = NULL,
+  cex.lab = 1,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  colorset = NULL,
+  legend.loc = "topright",
+  cex.legend = 0.8,
+  plot.type = "line"
+)
+
 \method{chart.Weights}{optimize.portfolio.pso}(
   object,
   ...,
@@ -65,7 +118,39 @@ chart.Weights(object, ...)
   plot.type = "line"
 )
 
+chart.Weight.ROI(
+  object,
+  ...,
+  neighbors = NULL,
+  main = "Weights",
+  las = 3,
+  xlab = NULL,
+  cex.lab = 1,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  colorset = NULL,
+  legend.loc = "topright",
+  cex.legend = 0.8,
+  plot.type = "line"
+)
+
 \method{chart.Weights}{optimize.portfolio.ROI}(
+  object,
+  ...,
+  neighbors = NULL,
+  main = "Weights",
+  las = 3,
+  xlab = NULL,
+  cex.lab = 1,
+  element.color = "darkgray",
+  cex.axis = 0.8,
+  colorset = NULL,
+  legend.loc = "topright",
+  cex.legend = 0.8,
+  plot.type = "line"
+)
+
+chart.Weight.RP(
   object,
   ...,
   neighbors = NULL,

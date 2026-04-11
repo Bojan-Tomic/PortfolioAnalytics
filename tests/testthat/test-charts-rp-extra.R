@@ -1,17 +1,17 @@
 ###############################################################################
 # tests/testthat/test-charts-rp-extra.R
 #
-# Additional branch coverage for R/charts.RP.R — branches NOT yet covered
+# Additional branch coverage for R/PortfolioAnalytics:::charts.RP.R — branches NOT yet covered
 # by test-charts-rp.R:
 #
-#   chart.Weight.RP:
+#   PortfolioAnalytics:::chart.Weight.RP:
 #     - neighbors as matrix/data.frame (lines 75-81)
 #     - las <= 1 branch (bottommargin = minmargin)
 #     - xlab non-NULL (minmargin = 5)
 #     - main = "" (topmargin = 1)
 #     - Infinite box constraints (ylim from weights)
 #
-#   chart.Scatter.RP:
+#   PortfolioAnalytics:::chart.Scatter.RP:
 #     - neighbors as matrix/data.frame (lines 201-212)
 #     - non-matching return.col/risk.col (applyFUN branch, lines 128-156)
 #     - optimal-weights applyFUN branch (lines 243-250) when return/risk
@@ -61,38 +61,38 @@ opt_rp_inf <- tryCatch({
 }, error = function(e) NULL)
 
 # ===========================================================================
-# chart.Weight.RP — parameter branch variants
+# PortfolioAnalytics:::chart.Weight.RP — parameter branch variants
 # ===========================================================================
 
-test_that("chart.Weight.RP: las=1 uses minmargin path (no rotation)", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: las=1 uses minmargin path (no rotation)", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Weight.RP(opt_rp_trace, las = 1))
+  expect_no_error(PortfolioAnalytics:::chart.Weight.RP(opt_rp_trace, las = 1))
 })
 
-test_that("chart.Weight.RP: xlab non-NULL sets minmargin=5", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: xlab non-NULL sets minmargin=5", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Weight.RP(opt_rp_trace, xlab = "Asset"))
+  expect_no_error(PortfolioAnalytics:::chart.Weight.RP(opt_rp_trace, xlab = "Asset"))
 })
 
-test_that("chart.Weight.RP: main='' uses topmargin=1", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: main='' uses topmargin=1", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Weight.RP(opt_rp_trace, main = ""))
+  expect_no_error(PortfolioAnalytics:::chart.Weight.RP(opt_rp_trace, main = ""))
 })
 
-test_that("chart.Weight.RP: infinite box constraints use weight-based ylim", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: infinite box constraints use weight-based ylim", {
   skip_if(is.null(opt_rp_inf), "opt_rp_inf fixture not available")
   pdf(NULL); on.exit(dev.off())
-  expect_no_error(chart.Weight.RP(opt_rp_inf, plot.type = "line"))
+  expect_no_error(PortfolioAnalytics:::chart.Weight.RP(opt_rp_inf, plot.type = "line"))
 })
 
 # ===========================================================================
-# chart.Weight.RP — neighbors as matrix (lines 75-81)
+# PortfolioAnalytics:::chart.Weight.RP — neighbors as matrix (lines 75-81)
 # ===========================================================================
 
-test_that("chart.Weight.RP: neighbors as matrix overplots neighbor weights", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: neighbors as matrix overplots neighbor weights", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   # Build a neighbors matrix from extractStats — same format the code expects
   xtract <- extractStats(opt_rp_trace)
@@ -101,46 +101,46 @@ test_that("chart.Weight.RP: neighbors as matrix overplots neighbor weights", {
   nbmat <- xtract[1:3, ]
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Weight.RP(opt_rp_trace,
                     neighbors = nbmat)
   )
 })
 
-test_that("chart.Weight.RP: neighbors as data.frame overplots neighbor weights", {
+test_that("PortfolioAnalytics:::chart.Weight.RP: neighbors as data.frame overplots neighbor weights", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   xtract <- extractStats(opt_rp_trace)
   nbdf <- as.data.frame(xtract[1:3, ])
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Weight.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Weight.RP(opt_rp_trace,
                     neighbors = nbdf)
   )
 })
 
 # ===========================================================================
-# chart.Scatter.RP — neighbors as matrix/data.frame (lines 201-212)
+# PortfolioAnalytics:::chart.Scatter.RP — neighbors as matrix/data.frame (lines 201-212)
 # ===========================================================================
 
-test_that("chart.Scatter.RP: neighbors as matrix overplots neighbor points", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: neighbors as matrix overplots neighbor points", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   xtract <- extractStats(opt_rp_trace)
   nbmat <- xtract[1:3, ]
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                      return.col = "mean",
                      risk.col   = "ES",
                      neighbors  = nbmat)
   )
 })
 
-test_that("chart.Scatter.RP: neighbors as data.frame overplots neighbor points", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: neighbors as data.frame overplots neighbor points", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   xtract <- extractStats(opt_rp_trace)
   nbdf <- as.data.frame(xtract[1:3, ])
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
-    chart.Scatter.RP(opt_rp_trace,
+    PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                      return.col = "mean",
                      risk.col   = "ES",
                      neighbors  = nbdf)
@@ -148,42 +148,42 @@ test_that("chart.Scatter.RP: neighbors as data.frame overplots neighbor points",
 })
 
 # ===========================================================================
-# chart.Scatter.RP — non-matching return.col/risk.col (applyFUN branch)
+# PortfolioAnalytics:::chart.Scatter.RP — non-matching return.col/risk.col (applyFUN branch)
 # lines 128-156: triggers when return.col or risk.col is not in extractStats
 # ===========================================================================
 
-test_that("chart.Scatter.RP: non-matching risk.col falls back to applyFUN (StdDev)", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: non-matching risk.col falls back to applyFUN (StdDev)", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   # "StdDev" is not in extractStats (which has mean/ES), so it goes to applyFUN
   expect_no_error(
     suppressWarnings(
-      chart.Scatter.RP(opt_rp_trace,
+      PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                        return.col = "mean",
                        risk.col   = "StdDev")
     )
   )
 })
 
-test_that("chart.Scatter.RP: non-matching return.col falls back to applyFUN (sd)", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: non-matching return.col falls back to applyFUN (sd)", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   # Suppress the "do not match extractStats" warning
   expect_no_error(
     suppressWarnings(
-      chart.Scatter.RP(opt_rp_trace,
+      PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                        return.col = "sd",
                        risk.col   = "ES")
     )
   )
 })
 
-test_that("chart.Scatter.RP: both return.col and risk.col non-matching (both applyFUN)", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: both return.col and risk.col non-matching (both applyFUN)", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
     suppressWarnings(
-      chart.Scatter.RP(opt_rp_trace,
+      PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                        return.col = "sd",
                        risk.col   = "StdDev")
     )
@@ -191,18 +191,18 @@ test_that("chart.Scatter.RP: both return.col and risk.col non-matching (both app
 })
 
 # ===========================================================================
-# chart.Scatter.RP — optimal-weights applyFUN branch (lines 243-250)
+# PortfolioAnalytics:::chart.Scatter.RP — optimal-weights applyFUN branch (lines 243-250)
 # When return.col or risk.col don't match objective_measures slot
 # ===========================================================================
 
-test_that("chart.Scatter.RP: optimal applyFUN branch fires for non-objective risk.col", {
+test_that("PortfolioAnalytics:::chart.Scatter.RP: optimal applyFUN branch fires for non-objective risk.col", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   # "StdDev" is not in objective_measures (which has mean and ES), so
   # lines 243-250 (applyFUN on optimal weights) should be executed
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
     suppressWarnings(
-      chart.Scatter.RP(opt_rp_trace,
+      PortfolioAnalytics:::chart.Scatter.RP(opt_rp_trace,
                        return.col = "mean",
                        risk.col   = "StdDev")
     )
@@ -210,15 +210,15 @@ test_that("chart.Scatter.RP: optimal applyFUN branch fires for non-objective ris
 })
 
 # ===========================================================================
-# charts.RP — propagation of non-matching cols
+# PortfolioAnalytics:::charts.RP — propagation of non-matching cols
 # ===========================================================================
 
-test_that("charts.RP: non-matching risk.col falls back via applyFUN without error", {
+test_that("PortfolioAnalytics:::charts.RP: non-matching risk.col falls back via applyFUN without error", {
   skip_if(is.null(opt_rp_trace), "opt_rp_trace fixture not available")
   pdf(NULL); on.exit(dev.off())
   expect_no_error(
     suppressWarnings(
-      charts.RP(opt_rp_trace,
+      PortfolioAnalytics:::charts.RP(opt_rp_trace,
                 risk.col   = "StdDev",
                 return.col = "mean")
     )

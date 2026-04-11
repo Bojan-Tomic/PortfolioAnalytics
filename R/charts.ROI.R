@@ -1,5 +1,5 @@
 
-#' @export
+#' @rdname chart.Weights
 chart.Weight.ROI <- function(object, ..., neighbors = NULL, main="Weights", las = 3, xlab=NULL, cex.lab = 1, element.color = "darkgray", cex.axis=0.8, colorset=NULL, legend.loc="topright", cex.legend=0.8, plot.type="line"){
   
   if(!inherits(object, "optimize.portfolio.ROI")) stop("object must be of class 'optimize.portfolio.ROI'")
@@ -80,7 +80,7 @@ chart.Weight.ROI <- function(object, ..., neighbors = NULL, main="Weights", las 
 chart.Weights.optimize.portfolio.ROI <- chart.Weight.ROI
 
 
-#' @export
+#' @rdname chart.RiskReward
 chart.Scatter.ROI <- function(object, ..., neighbors=NULL, return.col="mean", risk.col="ES", chart.assets=FALSE, element.color = "darkgray", cex.axis=0.8, xlim=NULL, ylim=NULL, rp=FALSE){
   
   if(!inherits(object, "optimize.portfolio.ROI")) stop("object must be of class 'optimize.portfolio.ROI'")
@@ -152,7 +152,6 @@ chart.Scatter.ROI <- function(object, ..., neighbors=NULL, return.col="mean", ri
 chart.RiskReward.optimize.portfolio.ROI <- chart.Scatter.ROI
 
 
-#' @export
 charts.ROI <- function(ROI, rp=FALSE, risk.col="ES", return.col="mean", chart.assets=FALSE, cex.axis=0.8, element.color="darkgray", neighbors=NULL, main="ROI.Portfolios", xlim=NULL, ylim=NULL, ...){
   # Specific to the output of the optimize_method=ROI
   op <- par(no.readonly=TRUE)

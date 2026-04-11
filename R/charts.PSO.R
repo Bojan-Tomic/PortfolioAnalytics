@@ -1,5 +1,5 @@
 
-#' @export
+#' @rdname chart.Weights
 chart.Weight.pso <- function(object, ..., neighbors = NULL, main="Weights", las = 3, xlab=NULL, cex.lab = 1, element.color = "darkgray", cex.axis=0.8, colorset=NULL, legend.loc="topright", cex.legend=0.8, plot.type="line"){
   
   if(!inherits(object, "optimize.portfolio.pso")) stop("object must be of class 'optimize.portfolio.pso'")
@@ -79,7 +79,7 @@ chart.Weight.pso <- function(object, ..., neighbors = NULL, main="Weights", las 
 #' @export
 chart.Weights.optimize.portfolio.pso <- chart.Weight.pso
 
-#' @export
+#' @rdname chart.RiskReward
 chart.Scatter.pso <- function(object, ..., neighbors=NULL, return.col="mean", risk.col="ES", chart.assets=FALSE, element.color = "darkgray", cex.axis=0.8, xlim=NULL, ylim=NULL){
   if(!inherits(object, "optimize.portfolio.pso")) stop("object must be of class 'optimize.portfolio.pso'")
   
@@ -211,7 +211,6 @@ chart.Scatter.pso <- function(object, ..., neighbors=NULL, return.col="mean", ri
 chart.RiskReward.optimize.portfolio.pso <- chart.Scatter.pso
 
 
-#' @export
 charts.pso <- function(pso, return.col="mean", risk.col="ES", chart.assets=FALSE, cex.axis=0.8, element.color="darkgray", neighbors=NULL, main="PSO.Portfolios", xlim=NULL, ylim=NULL, ...){
   # Specific to the output of the optimize_method=pso
   op <- par(no.readonly=TRUE)

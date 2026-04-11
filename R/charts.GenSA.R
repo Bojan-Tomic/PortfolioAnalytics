@@ -1,5 +1,5 @@
 
-#' @export
+#' @rdname chart.Weights
 chart.Weight.GenSA <- function(object, ..., neighbors = NULL, main="Weights", las = 3, xlab=NULL, cex.lab = 1, element.color = "darkgray", cex.axis=0.8, colorset=NULL, legend.loc="topright", cex.legend=0.8, plot.type="line"){
   
   if(!inherits(object, "optimize.portfolio.GenSA")) stop("object must be of class 'optimize.portfolio.GenSA'")
@@ -79,7 +79,7 @@ chart.Weight.GenSA <- function(object, ..., neighbors = NULL, main="Weights", la
 #' @export
 chart.Weights.optimize.portfolio.GenSA <- chart.Weight.GenSA
 
-#' @export
+#' @rdname chart.RiskReward
 chart.Scatter.GenSA <- function(object, ..., neighbors=NULL, return.col="mean", risk.col="ES", chart.assets=FALSE, element.color="darkgray", cex.axis=0.8, ylim=NULL, xlim=NULL, rp=FALSE){
   
   if(!inherits(object, "optimize.portfolio.GenSA")) stop("object must be of class 'optimize.portfolio.GenSA'")
@@ -150,7 +150,6 @@ chart.Scatter.GenSA <- function(object, ..., neighbors=NULL, return.col="mean", 
 chart.RiskReward.optimize.portfolio.GenSA <- chart.Scatter.GenSA
 
 
-#' @export
 charts.GenSA <- function(GenSA, rp=FALSE, return.col="mean", risk.col="ES", chart.assets=FALSE, cex.axis=0.8, element.color="darkgray", neighbors=NULL, main="GenSA.Portfolios", xlim=NULL, ylim=NULL, ...){
   # Specific to the output of the optimize_method=GenSA
   op <- par(no.readonly=TRUE)
