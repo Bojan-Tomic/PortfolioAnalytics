@@ -1909,10 +1909,10 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
         }
 
         # return target constraint: mu^T w >= target
-        # Matrix has N + T + 1 columns (N weights + T scenarios + 1 VaR).
-        # Pad colMeans(R) with zeros for the T scenario and 1 VaR columns.
+        # Matrix has 2 * N columns (N weights + N position flags).
+        # Pad colMeans(R) with zeros for the position flags.
         if (!is.infinite(target)) {
-          Rglpk.mat <- rbind(Rglpk.mat, c(colMeans(R), rep(0, T + 1)))
+          Rglpk.mat <- rbind(Rglpk.mat, c(colMeans(R), rep(0, N)))
           Rglpk.dir <- c(Rglpk.dir, ">=")
           Rglpk.rhs <- c(Rglpk.rhs, target)
         }
