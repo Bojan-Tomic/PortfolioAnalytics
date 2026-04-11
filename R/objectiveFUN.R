@@ -65,8 +65,9 @@ HHI <- function(weights, groups=NULL){
 }
 
 # portfolio mean return
-port.mean <- function(weights, mu){
+port.mean <- function(weights, mu = NULL){
   # t(weights) %*% moments$mu
+  if (is.null(mu)) return(NA_real_)
   as.numeric(crossprod(weights, mu))
 }
 

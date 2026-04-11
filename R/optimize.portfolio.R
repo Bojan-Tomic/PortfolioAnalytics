@@ -231,7 +231,8 @@ optimize.portfolio_v1 <- function(R,
     # first we construct the vector of results
     for (i in 1:length(search)) {
       if (isTRUE(trace)) {
-        search[i] <- ifelse(try(rp_objective_results[[i]]$out), rp_objective_results[[i]]$out, 1e6)
+        tmp_out <- try(rp_objective_results[[i]]$out, silent = TRUE)
+        search[i] <- if (!inherits(tmp_out, "try-error") && length(tmp_out) == 1L && is.finite(tmp_out)) tmp_out else 1e6
       } else {
         search[i] <- as.numeric(rp_objective_results[[i]])
       }
@@ -1056,7 +1057,8 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
     # first we construct the vector of results
     for (i in 1:length(search)) {
       if (isTRUE(trace)) {
-        search[i] <- ifelse(try(rp_objective_results[[i]]$out), rp_objective_results[[i]]$out, 1e6)
+        tmp_out <- try(rp_objective_results[[i]]$out, silent = TRUE)
+        search[i] <- if (!inherits(tmp_out, "try-error") && length(tmp_out) == 1L && is.finite(tmp_out)) tmp_out else 1e6
       } else {
         search[i] <- as.numeric(rp_objective_results[[i]])
       }
