@@ -16,9 +16,13 @@
 #' @param control list of solver control parameters
 #' @author Ross Bennett
 gmv_opt <- function(R, constraints, moments, lambda, target, lambda_hhi, conc_groups, solver="quadprog", control=NULL){
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI", quietly=TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
@@ -178,9 +182,13 @@ gmv_opt <- function(R, constraints, moments, lambda, target, lambda_hhi, conc_gr
 #' @param control list of solver control parameters
 #' @author Ross Bennett
 maxret_opt <- function(R, moments, constraints, target, solver="glpk", control=NULL){
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI",quietly = TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
@@ -286,9 +294,13 @@ maxret_opt <- function(R, moments, constraints, target, solver="glpk", control=N
 #' @param control list of solver control parameters
 #' @author Ross Bennett
 maxret_milp_opt <- function(R, constraints, moments, target, solver="glpk", control=NULL){
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI",quietly = TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
@@ -407,9 +419,13 @@ maxret_milp_opt <- function(R, constraints, moments, target, solver="glpk", cont
 #' @param control list of solver control parameters
 #' @author Ross Bennett
 etl_opt <- function(R, constraints, moments, target, alpha, solver="glpk", control=NULL){
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI",quietly = TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
@@ -507,9 +523,13 @@ etl_opt <- function(R, constraints, moments, target, alpha, solver="glpk", contr
 #' @param control list of solver control parameters
 #' @author Ross Bennett
 etl_milp_opt <- function(R, constraints, moments, target, alpha, solver="glpk", control=NULL){
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI",quietly = TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
@@ -668,9 +688,13 @@ etl_milp_opt <- function(R, constraints, moments, target, alpha, solver="glpk", 
 gmv_opt_toc <- function(R, constraints, moments, lambda, target, init_weights, solver="quadprog", control=NULL){
   # function for minimum variance or max quadratic utility problems
   stopifnot("package:corpcor" %in% search() || requireNamespace("corpcor",quietly = TRUE))
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI", quietly = TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
@@ -828,9 +852,13 @@ gmv_opt_ptc <- function(R, constraints, moments, lambda, target, init_weights, s
   # function for minimum variance or max quadratic utility problems
   # modifying ProportionalCostOpt function from MPO package
   stopifnot("package:corpcor" %in% search() || requireNamespace("corpcor", quietly = TRUE))
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI", quietly = TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
@@ -990,9 +1018,13 @@ gmv_opt_ptc <- function(R, constraints, moments, lambda, target, init_weights, s
 gmv_opt_leverage <- function(R, constraints, moments, lambda, target, solver="quadprog", control=NULL){
   # function for minimum variance or max quadratic utility problems
   stopifnot("package:corpcor" %in% search() || requireNamespace("corpcor",quietly = TRUE))
-  stopifnot("package:ROI" %in% search() || requireNamespace("ROI", quietly = TRUE))
+  if (!"package:ROI" %in% search() && !requireNamespace("ROI", quietly = TRUE))
+    stop("Package 'ROI' is required but not installed. ",
+         "Install it with: install.packages('ROI')", call. = FALSE)
   plugin <- paste0("ROI.plugin.", solver)
-  stopifnot(paste0("package:", plugin) %in% search() || requireNamespace(plugin, quietly=TRUE))
+  if (!paste0("package:", plugin) %in% search() && !requireNamespace(plugin, quietly = TRUE))
+    stop("ROI solver plugin '", plugin, "' is not installed. ",
+         "Install it with: install.packages('", plugin, "')", call. = FALSE)
   
   # Check for cleaned returns in moments
   if(!is.null(moments$cleanR)) R <- moments$cleanR
