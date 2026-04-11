@@ -11,6 +11,7 @@
 
 ## Conventions and Rules
 
+- Be concise and efficient when communicating. Think all you like, but don't think out loud. Silence is golden. Communicate only when you need input from the user or complete a task. 
 - All test files live in `tests/testthat/`, named `test-{topic}.R`
 - Use only modern testthat 3.x syntax — no `context()`, no `expect_that()`
 - Every test file must have `skip_on_cran()` and `skip_if_not_installed()` guards
@@ -113,7 +114,7 @@ unchanged.  R-only comparison is the accurate measure of progress.
 
 | File | % |
 |------|--:|
-| `R/optimize.portfolio.R` | 72.6 |
+| `R/optimize.portfolio.R` | 90.5 |
 | `R/optFUN.R` | 83.6 |
 | `R/constrained_objective.R` | 85.7 |
 | `R/charts.risk.R` | 86.4 |
@@ -177,9 +178,7 @@ unchanged.  R-only comparison is the accurate measure of progress.
 
 ### Priority 2 — Next targets (lowest R coverage)
 
-#### A. `R/optimize.portfolio.R` — 72.6% (~120 uncovered lines)
-- Largest single gap; most branches require complex solver/MILP setup
-- Sub-targets: rebalancing edge cases, regime-switching paths, parallel paths
+#### A. `R/optimize.portfolio.R` — >90.5% (Completed in session 4)
 
 #### B. `R/optFUN.R` — 83.6% (~90 uncovered lines)
 - Remaining: factor-exposure constraint blocks, try-error stop branches,
