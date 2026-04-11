@@ -76,11 +76,11 @@ gmv_opt <- function(R, constraints, moments, lambda, target, lambda_hhi, conc_gr
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
+    cLO <- if(is.null(constraints$cLO)) rep(-Inf, n.groups) else constraints$cLO
+    cUP <- if(is.null(constraints$cUP)) rep(Inf, n.groups) else constraints$cUP
     Amat <- rbind(Amat, Amat.group, -Amat.group)
     dir.vec <- c(dir.vec, rep(">=", (n.groups + n.groups)))
-    rhs.vec <- c(rhs.vec, constraints$cLO, -constraints$cUP)
+    rhs.vec <- c(rhs.vec, cLO, -cUP)
   }
   
   # Add the factor exposures to Amat, dir.vec, and rhs.vec
@@ -226,11 +226,11 @@ maxret_opt <- function(R, moments, constraints, target, solver="glpk", control=N
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
+    cLO <- if(is.null(constraints$cLO)) rep(-Inf, n.groups) else constraints$cLO
+    cUP <- if(is.null(constraints$cUP)) rep(Inf, n.groups) else constraints$cUP
     Amat <- rbind(Amat, Amat.group, -Amat.group)
     dir.vec <- c(dir.vec, rep(">=", (n.groups + n.groups)))
-    rhs.vec <- c(rhs.vec, constraints$cLO, -constraints$cUP)
+    rhs.vec <- c(rhs.vec, cLO, -cUP)
   }
   
   # Add the factor exposures to Amat, dir.vec, and rhs.vec
@@ -353,12 +353,12 @@ maxret_milp_opt <- function(R, constraints, moments, target, solver="glpk", cont
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
+    cLO <- if(is.null(constraints$cLO)) rep(-Inf, n.groups) else constraints$cLO
+    cUP <- if(is.null(constraints$cUP)) rep(Inf, n.groups) else constraints$cUP
     zeros <- matrix(data=0, nrow=nrow(Amat.group), ncol=ncol(Amat.group))
     Amat <- rbind(Amat, cbind(Amat.group, zeros), cbind(-Amat.group, zeros))
     dir <- c(dir, rep(">=", (n.groups + n.groups)))
-    rhs <- c(rhs, constraints$cLO, -constraints$cUP)
+    rhs <- c(rhs, cLO, -cUP)
   }
   
   # Add the factor exposures to Amat, dir, and rhs
@@ -458,12 +458,11 @@ etl_opt <- function(R, constraints, moments, target, alpha, solver="glpk", contr
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
-    zeros <- matrix(0, nrow=n.groups, ncol=(T+1))
-    Amat <- rbind(Amat, cbind(Amat.group, zeros), cbind(-Amat.group, zeros))
+    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups) else cLO <- constraints$cLO
+    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups) else cUP <- constraints$cUP
+    Amat <- rbind(Amat, Amat.group, -Amat.group)
     dir.vec <- c(dir.vec, rep(">=", (n.groups + n.groups)))
-    rhs.vec <- c(rhs.vec, constraints$cLO, -constraints$cUP)
+    rhs.vec <- c(rhs.vec, cLO, -cUP)
   }
   # Add the factor exposures to Amat, dir, and rhs
   if(!is.null(constraints$B)){
@@ -603,12 +602,12 @@ etl_milp_opt <- function(R, constraints, moments, target, alpha, solver="glpk", 
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
-    zeros <- matrix(0, nrow=n.groups, ncol=(m + n + 2))
-    tmpAmat <- rbind(tmpAmat, cbind(Amat.group, zeros), cbind(-Amat.group, zeros))
+    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups) else cLO <- constraints$cLO
+    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups) else cUP <- constraints$cUP
+    zeros <- matrix(data=0, nrow=nrow(Amat.group), ncol=ncol(Amat.group))
+    Amat <- rbind(Amat, cbind(Amat.group, zeros), cbind(-Amat.group, zeros))
     dir <- c(dir, rep(">=", (n.groups + n.groups)))
-    rhs <- c(rhs, constraints$cLO, -constraints$cUP)
+    rhs <- c(rhs, cLO, -cUP)
   }
   
   # Add the factor exposures to Amat, dir, and rhs
