@@ -2653,7 +2653,8 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
             "sigma" = 2,
             "volitility" = 2,
             "StdDev" = 2,
-            "sd" = 2
+            "sd" = 2,
+            "var" = 2
           )
 
           # check risk
