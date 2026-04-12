@@ -14,6 +14,7 @@ library(PortfolioAnalytics)
 if (identical(Sys.getenv("NOT_CRAN"), "true")) {
   n_cores <- max(2L, round(parallel::detectCores() / 2))
   Sys.setenv(TESTTHAT_CPUS = n_cores)
+  Sys.setenv(COVR_FIX_PARALLEL_MCEXIT='true') # protect parallel tests from errors in mcexit()
 }
 
 test_check("PortfolioAnalytics")
