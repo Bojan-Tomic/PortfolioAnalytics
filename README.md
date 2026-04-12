@@ -59,6 +59,7 @@ The package also includes extensive examples and demo scripts:
 *   **Solver Updates**: Continued refinements to CVXR and ROI integrations.
 *   **JPM 2024 Paper Replication**: Added scripts to replicate "Minimum Downside Risk Portfolios" (October 2024).
 *   **Risk Measure Update**: Replaced EQS (Expected Quadratic Shortfall) with CSM (Coherent Second Moment).
+*   **Test Suite Expansion**: Added comprehensive test suite with the aid of Gemini and Claude.
 
 ### [2.0.x] - 2024
 *   **CVXR Integration**: Major feature allowing access to eleven solver packages via `CVXR`.
