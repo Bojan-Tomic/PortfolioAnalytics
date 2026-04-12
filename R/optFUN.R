@@ -460,7 +460,8 @@ etl_opt <- function(R, constraints, moments, target, alpha, solver="glpk", contr
     }
     if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups) else cLO <- constraints$cLO
     if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups) else cUP <- constraints$cUP
-    Amat <- rbind(Amat, Amat.group, -Amat.group)
+    zeros <- matrix(0, nrow=n.groups, ncol=(T+1))
+    Amat <- rbind(Amat, cbind(Amat.group, zeros), cbind(-Amat.group, zeros))
     dir.vec <- c(dir.vec, rep(">=", (n.groups + n.groups)))
     rhs.vec <- c(rhs.vec, cLO, -cUP)
   }
