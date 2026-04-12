@@ -105,7 +105,7 @@ constrained_objective_v1 <- function(w, R, constraints, ..., trace=FALSE, normal
     if(is.null(constraints$objectives)) {
       warning("no objectives specified in constraints")
     } else{
-      if(isTRUE(trace) | isTRUE(storage)) tmp_return<-list()
+      if(isTRUE(trace) | isTRUE(storage) | isTRUE(verbose)) tmp_return<-list()
       for (objective in constraints$objectives){
         #check for clean bits to pass in
         if(objective$enabled){

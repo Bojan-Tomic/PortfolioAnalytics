@@ -772,12 +772,12 @@ gmv_opt_toc <- function(R, constraints, moments, lambda, target, init_weights, s
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
+    cLO <- if(is.null(constraints$cLO)) rep(-Inf, n.groups) else constraints$cLO
+    cUP <- if(is.null(constraints$cUP)) rep(Inf, n.groups) else constraints$cUP
     Amat <- rbind(Amat, cbind(Amat.group, zeros, zeros))
     Amat <- rbind(Amat, cbind(-Amat.group, zeros, zeros))
     dir <- c(dir, rep(">=", (n.groups + n.groups)))
-    rhs <- c(rhs, constraints$cLO, -constraints$cUP)
+    rhs <- c(rhs, cLO, -cUP)
   }
   
   # Add the factor exposures to Amat, dir, and rhs
@@ -791,9 +791,10 @@ gmv_opt_toc <- function(R, constraints, moments, lambda, target, init_weights, s
   }
   
   # Remove the rows of Amat and elements of rhs.vec where rhs is Inf or -Inf
-  Amat <- Amat[!is.infinite(rhs), ]
-  rhs <- rhs[!is.infinite(rhs)]
-  dir <- dir[!is.infinite(rhs)]
+  keep <- !is.infinite(rhs)
+  Amat <- Amat[keep, ]
+  rhs  <- rhs[keep]
+  dir  <- dir[keep]
   
   ROI_objective <- ROI::Q_objective(Q=corpcor::make.positive.definite(2*lambda*V), 
                                L=rep(-tmp_means, 3))
@@ -833,21 +834,7 @@ gmv_opt_toc <- function(R, constraints, moments, lambda, target, init_weights, s
   return(out)
 }
 
-##### minimize variance or maximize quadratic utility with proportional transactioncosts constraints #####
-#' GMV/QU QP Optimization with Proportional Transaction Cost Constraint
-#' 
-#' This function is called by optimize.portfolio to solve minimum variance or 
-#' maximum quadratic utility problems with proportional transaction cost constraint
-#' 
-#' @param R xts object of asset returns
-#' @param constraints object of constraints in the portfolio object extracted with \code{get_constraints}
-#' @param moments object of moments computed based on objective functions
-#' @param lambda risk_aversion parameter
-#' @param target target return value
-#' @param init_weights initial weights to compute turnover
-#' @param solver solver to use
-#' @param control list of solver control parameters
-#' @author Ross Bennett
+##### minimize variance or maximize quadratic utility with proportional transaction costs #####
 gmv_opt_ptc <- function(R, constraints, moments, lambda, target, init_weights, solver="quadprog", control=NULL){
   # function for minimum variance or max quadratic utility problems
   # modifying ProportionalCostOpt function from MPO package
@@ -944,12 +931,12 @@ gmv_opt_ptc <- function(R, constraints, moments, lambda, target, init_weights, s
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
+    cLO <- if(is.null(constraints$cLO)) rep(-Inf, n.groups) else constraints$cLO
+    cUP <- if(is.null(constraints$cUP)) rep(Inf, n.groups) else constraints$cUP
     Amat <- rbind(Amat, cbind(Amat.group, Amat.group, Amat.group))
     Amat <- rbind(Amat, cbind(-Amat.group, -Amat.group, -Amat.group))
     dir <- c(dir, rep(">=", (n.groups + n.groups)))
-    rhs <- c(rhs, constraints$cLO, -constraints$cUP)
+    rhs <- c(rhs, cLO, -cUP)
   }
   
   # Add the factor exposures to Amat, dir, and rhs
@@ -963,9 +950,10 @@ gmv_opt_ptc <- function(R, constraints, moments, lambda, target, init_weights, s
   d <- c(-tmp_means, rep(0, 2 * N))
   
   # Remove the rows of Amat and elements of rhs where rhs is Inf or -Inf
-  Amat <- Amat[!is.infinite(rhs), ]
-  rhs <- rhs[!is.infinite(rhs)]
-  dir <- dir[!is.infinite(rhs)]
+  keep <- !is.infinite(rhs)
+  Amat <- Amat[keep, ]
+  rhs  <- rhs[keep]
+  dir  <- dir[keep]
   
   ROI_objective <- ROI::Q_objective(Q=corpcor::make.positive.definite(2*lambda*V), L=d)
   
@@ -1100,12 +1088,12 @@ gmv_opt_leverage <- function(R, constraints, moments, lambda, target, solver="qu
     for(i in 1:n.groups){
       Amat.group[i, constraints$groups[[i]]] <- 1
     }
-    if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups)
-    if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups)
+    cLO <- if(is.null(constraints$cLO)) rep(-Inf, n.groups) else constraints$cLO
+    cUP <- if(is.null(constraints$cUP)) rep(Inf, n.groups) else constraints$cUP
     Amat <- rbind(Amat, cbind(Amat.group, zeros, zeros))
     Amat <- rbind(Amat, cbind(-Amat.group, zeros, zeros))
     dir <- c(dir, rep(">=", (n.groups + n.groups)))
-    rhs <- c(rhs, constraints$cLO, -constraints$cUP)
+    rhs <- c(rhs, cLO, -cUP)
   }
   
   # Add the factor exposures to Amat, dir, and rhs
@@ -1119,9 +1107,10 @@ gmv_opt_leverage <- function(R, constraints, moments, lambda, target, solver="qu
   }
   
   # Remove the rows of Amat and elements of rhs.vec where rhs is Inf or -Inf
-  Amat <- Amat[!is.infinite(rhs), ]
-  rhs <- rhs[!is.infinite(rhs)]
-  dir <- dir[!is.infinite(rhs)]
+  keep <- !is.infinite(rhs)
+  Amat <- Amat[keep, ]
+  rhs  <- rhs[keep]
+  dir  <- dir[keep]
   
   ROI_objective <- ROI::Q_objective(Q=corpcor::make.positive.definite(2*lambda*V), 
                                L=rep(-tmp_means, 3))
