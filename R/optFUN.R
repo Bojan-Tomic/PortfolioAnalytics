@@ -605,8 +605,8 @@ etl_milp_opt <- function(R, constraints, moments, target, alpha, solver="glpk", 
     }
     if(is.null(constraints$cLO)) cLO <- rep(-Inf, n.groups) else cLO <- constraints$cLO
     if(is.null(constraints$cUP)) cUP <- rep(Inf, n.groups) else cUP <- constraints$cUP
-    zeros <- matrix(data=0, nrow=nrow(Amat.group), ncol=ncol(Amat.group))
-    Amat <- rbind(Amat, cbind(Amat.group, zeros), cbind(-Amat.group, zeros))
+    zeros <- matrix(data=0, nrow=nrow(Amat.group), ncol=(m + n + 2))
+    tmpAmat <- rbind(tmpAmat, cbind(Amat.group, zeros), cbind(-Amat.group, zeros))
     dir <- c(dir, rep(">=", (n.groups + n.groups)))
     rhs <- c(rhs, cLO, -cUP)
   }

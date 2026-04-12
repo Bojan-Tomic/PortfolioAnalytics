@@ -1518,6 +1518,16 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
           rm(temp)
         }
 
+        # factor exposure constraint: lower_fe <= B' * w <= upper_fe
+        # A1 (maxReturn/noPos): matrix has N columns, no padding needed.
+        if (!is.null(constraints$B)) {
+          t.B <- t(constraints$B)
+          K <- nrow(t.B)
+          Rglpk.mat <- rbind(Rglpk.mat, t.B, t.B)
+          Rglpk.dir <- c(Rglpk.dir, rep(">=", K), rep("<=", K))
+          Rglpk.rhs <- c(Rglpk.rhs, constraints$lower, constraints$upper)
+        }
+
         # return target constraint
         if (!is.infinite(target)) {
           Rglpk.mat <- rbind(Rglpk.mat, colMeans(R))
@@ -1618,6 +1628,17 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
             )
           }
           rm(temp)
+        }
+
+        # factor exposure constraint: lower_fe <= B' * w <= upper_fe
+        # A2 (minES/noPos): matrix has N + T + 1 columns; pad t(B) with zeros.
+        if (!is.null(constraints$B)) {
+          t.B <- t(constraints$B)
+          K <- nrow(t.B)
+          t.B.padded <- cbind(t.B, matrix(0, K, T + 1))
+          Rglpk.mat <- rbind(Rglpk.mat, t.B.padded, t.B.padded)
+          Rglpk.dir <- c(Rglpk.dir, rep(">=", K), rep("<=", K))
+          Rglpk.rhs <- c(Rglpk.rhs, constraints$lower, constraints$upper)
         }
 
         # return target constraint: mu^T w >= target
@@ -1746,6 +1767,19 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
             Rglpk.rhs <- c(Rglpk.rhs, 0)
           }
           rm(temp)
+        }
+
+        # factor exposure constraint (Charnes-Cooper form):
+        # A3 (maxRatio/noPos): lower_fe * kappa <= B' * y <= upper_fe * kappa
+        # Row form: [t(B), 0_{T+1}, -lower_fe] >= 0  and  [t(B), 0_{T+1}, -upper_fe] <= 0
+        if (!is.null(constraints$B)) {
+          t.B <- t(constraints$B)
+          K <- nrow(t.B)
+          fe.lower.rows <- cbind(t.B, matrix(0, K, T + 1), -constraints$lower)
+          fe.upper.rows <- cbind(t.B, matrix(0, K, T + 1), -constraints$upper)
+          Rglpk.mat <- rbind(Rglpk.mat, fe.lower.rows, fe.upper.rows)
+          Rglpk.dir <- c(Rglpk.dir, rep(">=", K), rep("<=", K))
+          Rglpk.rhs <- c(Rglpk.rhs, rep(0, 2 * K))
         }
 
         # return target constraint: mu^T w >= target
@@ -1908,6 +1942,17 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
           rm(temp)
         }
 
+        # factor exposure constraint: lower_fe <= B' * w <= upper_fe
+        # B1 (maxReturn/pos): matrix has 2*N columns; pad t(B) with zeros for position flags.
+        if (!is.null(constraints$B)) {
+          t.B <- t(constraints$B)
+          K <- nrow(t.B)
+          t.B.padded <- cbind(t.B, matrix(0, K, N))
+          Rglpk.mat <- rbind(Rglpk.mat, t.B.padded, t.B.padded)
+          Rglpk.dir <- c(Rglpk.dir, rep(">=", K), rep("<=", K))
+          Rglpk.rhs <- c(Rglpk.rhs, constraints$lower, constraints$upper)
+        }
+
         # return target constraint: mu^T w >= target
         # Matrix has 2 * N columns (N weights + N position flags).
         # Pad colMeans(R) with zeros for the position flags.
@@ -2051,6 +2096,17 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
 
           # remove temp variable
           rm(temp)
+        }
+
+        # factor exposure constraint: lower_fe <= B' * w <= upper_fe
+        # B2 (minES/pos): matrix has 2*N + T + 1 columns; pad for scenario + VaR + position.
+        if (!is.null(constraints$B)) {
+          t.B <- t(constraints$B)
+          K <- nrow(t.B)
+          t.B.padded <- cbind(t.B, matrix(0, K, T + 1 + N))
+          Rglpk.mat <- rbind(Rglpk.mat, t.B.padded, t.B.padded)
+          Rglpk.dir <- c(Rglpk.dir, rep(">=", K), rep("<=", K))
+          Rglpk.rhs <- c(Rglpk.rhs, constraints$lower, constraints$upper)
         }
 
         # return target constraint
@@ -2232,6 +2288,19 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
             }
           }
           rm(temp)
+        }
+
+        # factor exposure constraint (Charnes-Cooper form):
+        # B3 (maxRatio/pos): lower_fe * kappa <= B' * y <= upper_fe * kappa
+        # Row form: [t(B), 0_{T+1}, -lower_fe, 0_N] >= 0  and  [t(B), 0_{T+1}, -upper_fe, 0_N] <= 0
+        if (!is.null(constraints$B)) {
+          t.B <- t(constraints$B)
+          K <- nrow(t.B)
+          fe.lower.rows <- cbind(t.B, matrix(0, K, T + 1), -constraints$lower, matrix(0, K, N))
+          fe.upper.rows <- cbind(t.B, matrix(0, K, T + 1), -constraints$upper, matrix(0, K, N))
+          Rglpk.mat <- rbind(Rglpk.mat, fe.lower.rows, fe.upper.rows)
+          Rglpk.dir <- c(Rglpk.dir, rep(">=", K), rep("<=", K))
+          Rglpk.rhs <- c(Rglpk.rhs, rep(0, 2 * K))
         }
 
         # return target constraint: mu^T w >= target
@@ -2451,6 +2520,15 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
         )
       }
 
+      # factor exposure constraint: lower_fe <= B' * w <= upper_fe
+      if (!is.null(constraints$B)) {
+        t.B <- t(constraints$B)
+        osqp.A <- rbind(osqp.A, t.B)
+        osqp.l <- c(osqp.l, constraints$lower)
+        osqp.u <- c(osqp.u, constraints$upper)
+        osqp.rnames <- c(osqp.rnames, rep("factor_exposure", nrow(t.B)))
+      }
+
       # return target constraint
       if (!is.infinite(target)) {
         osqp.A <- rbind(osqp.A, colMeans(R))
@@ -2471,7 +2549,11 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
         A = osqp.A,
         l = osqp.l,
         u = osqp.u,
-        pars = osqp::osqpSettings(verbose = FALSE)
+        pars = osqp::osqpSettings(verbose = FALSE,
+                                   eps_abs = 1e-8,
+                                   eps_rel = 1e-8,
+                                   max_iter = 10000L,
+                                   polishing = TRUE)
       ))
 
       # null result
@@ -2560,6 +2642,20 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
         rm(temp)
       }
 
+      # factor exposure constraint (Charnes-Cooper form):
+      # lower_fe * kappa <= B' * y <= upper_fe * kappa
+      # Row form: [t(B), -lower_fe] * [y; kappa] >= 0  (lower bound)
+      #           [-t(B), upper_fe] * [y; kappa] >= 0  (upper bound)
+      if (!is.null(constraints$B)) {
+        t.B <- t(constraints$B)
+        K <- nrow(t.B)
+        osqp.A <- rbind(osqp.A, cbind(t.B, -constraints$lower))
+        osqp.A <- rbind(osqp.A, cbind(-t.B, constraints$upper))
+        osqp.l <- c(osqp.l, rep(0, 2 * K))
+        osqp.u <- c(osqp.u, rep(Inf, 2 * K))
+        osqp.rnames <- c(osqp.rnames, rep("factor_exposure", 2 * K))
+      }
+
       # return target constraint
       if (!is.infinite(target)) {
         osqp.A <- rbind(osqp.A, c(rep(0, N), target))
@@ -2589,7 +2685,11 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
         A = osqp.A,
         l = osqp.l,
         u = osqp.u,
-        pars = osqp::osqpSettings(verbose = FALSE)
+        pars = osqp::osqpSettings(verbose = FALSE,
+                                   eps_abs = 1e-8,
+                                   eps_rel = 1e-8,
+                                   max_iter = 10000L,
+                                   polishing = TRUE)
       ))
 
       # null result
@@ -2994,13 +3094,13 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
     }
 
     # weight scale for maximizing return per unit risk
-    if (!maxSR & !maxSTARR & !CSMratio) weight_scale <- 1 else weight_scale <- sum(wts)
+    if (!maxSR & !maxSTARR & !CSMratio & !EQSratio) weight_scale <- 1 else weight_scale <- sum(wts)
 
     # constraint type
     ## weight sum constraint
     ### Problem of maximizing return per unit risk doesn't need weight sum constraint,
     ### because weights could be scaled proportionally.
-    if (!maxSR & !maxSTARR & !CSMratio) {
+    if (!maxSR & !maxSTARR & !CSMratio & !EQSratio) {
       if (!is.null(constraints$max_sum) & !is.infinite(constraints$max_sum) & constraints$max_sum - constraints$min_sum <= 0.001) {
         constraints_cvxr <- append(constraints_cvxr, sum(wts) == constraints$max_sum)
       } else {
@@ -3047,8 +3147,8 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
 
     ## factor exposure constraint
     if (!is.null(constraints$B)) {
-      constraints_cvxr <- append(constraints_cvxr, t(constraints$B) %*% wts <= constraints$upper)
-      constraints_cvxr <- append(constraints_cvxr, t(constraints$B) %*% wts >= constraints$lower)
+      constraints_cvxr <- append(constraints_cvxr, t(constraints$B) %*% wts <= constraints$upper * weight_scale)
+      constraints_cvxr <- append(constraints_cvxr, t(constraints$B) %*% wts >= constraints$lower * weight_scale)
     }
 
     ## turnover constraint
@@ -3069,7 +3169,7 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
         }
         obj <- CVXR::quad_form(wts - weight_initial, sigma_value_penalty) + 2 * t(wts - weight_initial) %*% sigma_value %*% weight_initial + t(weight_initial) %*% sigma_value %*% weight_initial
       }
-      constraints_cvxr <- append(constraints_cvxr, sum(abs(wts - weight_initial)) <= constraints$turnover_target)
+      constraints_cvxr <- append(constraints_cvxr, sum(abs(wts - weight_initial * weight_scale)) <= constraints$turnover_target * weight_scale)
     }
 
     # problem
@@ -3098,7 +3198,7 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
 
     result_cvxr <- do.call(CVXR::psolve, cvxr_params)
     cvxr_wts <- CVXR::value(wts)
-    if (maxSR | maxSTARR | CSMratio) {
+    if (maxSR | maxSTARR | CSMratio | EQSratio) {
       cvxr_sum <- sum(cvxr_wts)
       if (abs(cvxr_sum) < .Machine$double.eps^0.5) {
         warning("CVXR weights sum to near-zero; skipping sum-normalization to avoid NaN/Inf weights.")
@@ -3118,7 +3218,7 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
     } else if (!reward & risk & !risk_ES & !risk_CSM & risk_HHI) { # min HHI
       obj_cvxr[["StdDev"]] <- sqrt(t(cvxr_wts) %*% sigma_value %*% cvxr_wts)
       obj_cvxr[[tmpname]] <- (result_cvxr - t(cvxr_wts) %*% sigma_value %*% cvxr_wts) / lambda_hhi
-    } else if (!maxSR & !maxSTARR & !CSMratio) { # mean-var/ES/CSM
+    } else if (!maxSR & !maxSTARR & !CSMratio & !EQSratio) { # mean-var/ES/CSM
       obj_cvxr[[tmpname]] <- result_cvxr
       if (reward & risk) {
         obj_cvxr[["mean"]] <- cvxr_wts %*% mean_value
@@ -3135,6 +3235,9 @@ optimize.portfolio <- optimize.portfolio_v2 <- function(
       } else if (CSMratio) {
         obj_cvxr[["CSM"]] <- result_cvxr / sum(CVXR::value(wts))
         obj_cvxr[[tmpname]] <- obj_cvxr[["mean"]] / obj_cvxr[["CSM"]]
+      } else if (EQSratio) {
+        obj_cvxr[["EQS"]] <- result_cvxr / sum(CVXR::value(wts))
+        obj_cvxr[[tmpname]] <- obj_cvxr[["mean"]] / obj_cvxr[["EQS"]]
       }
     }
     if (ef) obj_cvxr[["mean"]] <- cvxr_wts %*% mean_value

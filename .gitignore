@@ -34,6 +34,9 @@ vignettes/*.pdf
 *.knit.md
 .Rproj.user
 
+# Quarto render artifacts
+vignettes/optimization_solvers_files/
+
 # compiled files
 *.o
 *.so

@@ -1,90 +1,55 @@
 # PortfolioAnalytics Plan
 
-We have completed major test coverage and issue cleanup for `PortfolioAnalytics` 
-with the help of Gemini and Claude. This document summarizes our conventions, 
-structure, and rules for interacting with the repository.
+We have completed major test coverage, bug fixes, and a comprehensive
+optimization solvers vignette for `PortfolioAnalytics`. This document
+summarizes conventions, current status, and remaining work.
 
-Our immediate plan is to develop a quarto document in the `vignettes/` 
-directory that serves as a comprehensive comparison and reference for 
-the optimization solvers supported by `PortfolioAnalytics`. 
+## Current Status
 
-Our goal is to build a document that:
-- briefly describes the optimization landscape and the solvers we support
-- provides a matrix and performance benchmarks for all the "shortcut" objective  
-  specifications (e.g. max return, max Sharpe, min CSM) across all solvers that support 
-  them and manually implemented in global solvers such as DEoptim and pso
-- includes code snippets for how to use each solver with each objective specification
-- benchmarks time to converge for the various methods
+- **Branch:** `feature/optimization-solvers-vignette` — 15 commits, not yet pushed
+- **Vignette:** `vignettes/optimization_solvers.qmd` — feature-complete, renders to HTML and PDF
+- **Bugs fixed this session:** BUG-13 through BUG-16 (see git log for details)
+- **Enhancements:** #50 (osqp/Rglpk factor exposure, CLOSED), #52 (`fn_map()` QP projection, CLOSED)
+- **Open issue:** #51 — CSM in metaheuristics (standalone `CSM()` function, design work needed)
 
-much of the documentation on how to use the various solvers is already in place in the vignettes and demo scripts, so we will be able to reuse a lot of that content.  The main work will be in organizing it into a single document, filling in any gaps, and running benchmarks.
+### Coverage
 
-While working on this, we should also highlight areas for normalization of support for the shortcut objective specifications across solvers, and identify any gaps in our current support.  We may choose to implement these gaps as part of this work, or we may choose to simply document them and prioritize them for future work.
+| Checkpoint | R-only coverage | Source |
+|------------|----------------:|--------|
+| Initial baseline | 86.5% | `covr/coverage-2026-04-11-session2.rds` |
+| After vignette session | **93.23%** (7827/8395) | `covr/coverage-2026-04-12.rds` |
+| Delta | **+8.08 pp** | |
 
-This document also includes summaries of the bugs we discovered and fixed during coverage 
-work, the current coverage status, and our next steps if we come back 
-to coverage.  For the purposes of the current task, the main point is 
-to make sure nothing we do makes coverage go down. 
+#### Key file improvements
 
-## Plan for Optimization Solvers Vignette
+| File | Before | After | Delta |
+|------|-------:|------:|------:|
+| `R/optimize.portfolio.R` | 71.02% | 92.13% | +21.11 pp |
+| `R/constrained_objective.R` | 85.71% | 97.20% | +11.49 pp |
+| `R/optFUN.R` | 83.59% | 94.13% | +10.54 pp |
+| `R/constraint_fn_map.R` | 90.75% | 91.46% | +0.71 pp |
 
-### Format & Toolchain
+#### Lowest-coverage files (current)
 
-- Quarto `.qmd` targeting HTML output (CRAN displays HTML vignettes natively)
-- VignetteEngine: `quarto::html`; VignetteBuilder: `quarto` added to DESCRIPTION
-- `quarto` added to Suggests in DESCRIPTION
-- PDF output is a secondary target; `.asis` delivery deferred for now
-- File: `vignettes/optimization_solvers.qmd`
+| File | % | Lines | Notes |
+|------|--:|------:|-------|
+| `R/charts.risk.R` | 86.36 | 190/220 | charting, hard to test |
+| `R/charts.multiple.R` | 87.65 | 71/81 | charting |
+| `R/plotFrontiers.R` | 89.09 | 49/55 | charting |
+| `R/charts.efficient.frontier.R` | 90.49 | 352/389 | charting |
+| `R/chart.concentration.R` | 90.62 | 87/96 | charting |
+| `R/trailingFUN.R` | 90.62 | 29/32 | |
+| `R/EntropyProg.R` | 90.83 | 109/120 | |
+| `R/mult.layer.portfolio.R` | 90.91 | 50/55 | |
+| `R/constraint_fn_map.R` | 91.46 | 450/492 | |
+| `R/charts.ROI.R` | 91.55 | 65/71 | charting |
+| `R/extract.efficient.frontier.R` | 91.58 | 261/285 | |
+| `R/optimize.portfolio.R` | 92.13 | 1955/2122 | |
 
-### Outline
+Both `R CMD check --as-cran` and `NOT_CRAN=true R CMD check` pass — tests: OK.
+Pre-existing warnings (`.gcda` files, missing `inst/doc`, version, compile flags) are unrelated to our work.
 
-#### 1. Introduction
-- The optimization landscape in portfolio construction
-- PortfolioAnalytics' solver-agnostic design philosophy
-- Scope of this document
-
-#### 2. Solver Overview
-- **Convex/closed-form solvers** (CVXR first as primary focus, then ROI, osqp, Rglpk)
-- **Metaheuristic solvers** (DEoptim, GenSA, pso, random)
-- **Multi-objective** (mco / NSGA-II)
-- Summary table: solver → problem class → strengths/limitations
-
-#### 3. Objective & Constraint Support Matrix
-- Master matrix: rows = objective specifications, columns = solvers
-  - Objectives: maxret, minvar/minStdDev, minES/minCVaR, minCSM, maxSR,
-    maxSTARR, CSMratio, EQSratio, maxQU, riskbudget, weight_concentration
-  - For each cell: native shortcut, manual via constrained_objective, or unsupported
-- Constraint compatibility notes per solver
-- Constraint types: box, group, weight_sum, turnover, diversification,
-  position_limit, return, factor_exposure, transaction_cost, leverage_exposure
-
-#### 4. Worked Examples
-- Common data setup (edhec dataset)
-- Organized by objective specification, CVXR examples first:
-  - Code snippet for each supporting solver
-  - Comparison of results (weights, objective value)
-  - Solver-specific parameter notes
-- Cross-solver result comparison tables
-
-#### 5. Performance Benchmarks
-- Methodology (microbenchmark or system.time, multiple repetitions)
-- Time-to-converge comparison tables
-- Convergence quality comparison (objective value achieved)
-- Visuals: bar charts or heatmaps
-
-#### 6. Solver Selection Guide
-- Decision tree: "which solver should I use?"
-- When to use closed-form vs metaheuristic
-- Scalability considerations (number of assets)
-
-#### 7. Gaps & Normalization Notes
-- Identified gaps in shortcut specification support across solvers
-- Inconsistencies in interface or behavior
-- Planned improvements
-
-#### Appendix
-- Full constraint type reference
-- Session info
-
+---
 
 ## Development Conventions and Rules
 
@@ -104,123 +69,51 @@ to make sure nothing we do makes coverage go down.
 
 ---
 
-## Bugs Discovered During Coverage Work
+## All Bugs Fixed (reference)
 
-### BUG-1 — `extractStats.optimize.portfolio.parallel`: wrong iteration variable
-**File:** `R/extractstats.R`, line 318
-**Status: FIXED** — Changed `resultlist <- object` to `resultlist <- object$optimizations`
-**Regression test:** `tests/testthat/test-optimize-parallel.R`
-
-### BUG-2 — `custom.covRob.Mcd`: `match.call()` captures symbol for `control=`
-**File:** `R/custom.covRob.R`, line 90
-**Status: FIXED** — Changed `match.call(expand.dots=TRUE)$control` to `list(...)[["control"]]`
-**Regression test:** `tests/testthat/test-custom-covrob.R`
-
-### BUG-3 — `set.portfolio.moments()`: `match.call()` for `posterior_p`
-**File:** `R/moment.functions.R`, line 209
-**Status: FIXED** — Changed `match.call(expand.dots=TRUE)$posterior_p` to `list(...)[["posterior_p"]]`
-**Regression test:** `tests/testthat/test-moment-functions-garch.R`
-
-### BUG-4 — `CCCgarch.MM()`: `clean` argument logic is inverted
-**File:** `R/moment.functions.R`, lines 45–47
-**Status: FIXED** — Inverted condition (`!hasArg` → `hasArg`) and replaced `match.call()$clean` with `list(...)[["clean"]]`
-**Test:** `tests/testthat/test-moment-functions-garch.R`
-
-### BUG-5 — `optimize.portfolio.rebalancing()`: crashes with `regime.portfolios` input
-**File:** `R/optimize.portfolio.R`, line 3497
-**Status: FIXED** — Added NULL guard: `turnover_idx <- if (!is.null(portfolio$constraints)) which(...) else integer(0)`
-**Regression test:** `tests/testthat/test-extractstats-regime.R`
-
-### BUG-6 — `constrained_objective_v2()`: `CSM` switch arm leaves `fun` undefined
-**File:** `R/constrained_objective.R`, lines 572 and 631–634
-**Status: FIXED** — Added `fun <- NULL` before the switch; wrapped `do.call` with `if(is.function(fun)) { ... } else { next }`
-**Regression test:** `tests/testthat/test-constrained-objective-gaps.R`
-
-### BUG-7 — `gmv_opt_ptc()`: target-return formulation produces non-numeric weights
-**File:** `R/optFUN.R`, line 895
-**Status: FIXED** — Changed `rhs <- 1 + target` to `rhs <- target`
-**Regression test:** `tests/testthat/test-optFUN-gaps.R`
-
-### BUG-8 — `summary.optimize.portfolio.parallel`: crashes when nodes use ROI solver
-**File:** `R/generics.R`, lines 1078–1079
-**Status: FIXED** — Added `if (is.vector(tmp)) tmp <- t(as.matrix(tmp))` before the `[,"out"]` index
-**Regression test:** `tests/testthat/test-generics-print-summary.R`
-
-### BUG-9 — `VaR`/`ES` in PerformanceAnalytics: `portfolio_method='single'` does not auto-compute moments
-**Upstream package:** `PerformanceAnalytics` — filed as
-[braverock/PerformanceAnalytics#197](https://github.com/braverock/PerformanceAnalytics/issues/197)
-**Status: UPSTREAM — not fixed here**
-**Workaround:** Pass `FUN="StdDev"` to `SharpeRatio`, or supply explicit moments when calling `VaR`/`ES` directly
-
-### BUG-10 — `etl_opt` group constraint dimension mismatch
-**File:** `R/optFUN.R`, line 463
-**Status: FIXED** (`cdc1cc2`) — `Amat.group` had only `N` columns but needed `N + T+1`; fix: `cbind(Amat.group, zeros)` where `zeros` has `T+1` cols
-
-### BUG-11 — `gmv_opt_toc`/`gmv_opt_ptc`/`gmv_opt_leverage`: NULL cLO/cUP and dir-filter bug
-**File:** `R/optFUN.R`, ~lines 775, 895, 1022
-**Status: FIXED** (`e237b23`) — local `cLO`/`cUP` variables were set conditionally but then the original `constraints$cLO`/`constraints$cUP` were used in `rhs`; dir-filter used already-modified `rhs`
-
-### BUG-12 — `gmv_opt_ptc` accidentally deleted from source
-**File:** `R/optFUN.R`
-**Status: FIXED** (`e237b23`) — Function was restored with all cLO/cUP and dir-filter bugs already corrected
+| Bug | File | Summary | Commit |
+|-----|------|---------|--------|
+| BUG-1 | `R/extractstats.R` | `extractStats.optimize.portfolio.parallel` wrong iteration variable | prior session |
+| BUG-2 | `R/custom.covRob.R` | `custom.covRob.Mcd` `match.call()` captures symbol | prior session |
+| BUG-3 | `R/moment.functions.R` | `set.portfolio.moments()` `match.call()` for `posterior_p` | prior session |
+| BUG-4 | `R/moment.functions.R` | `CCCgarch.MM()` `clean` argument logic inverted | prior session |
+| BUG-5 | `R/optimize.portfolio.R` | `optimize.portfolio.rebalancing()` crashes with `regime.portfolios` | prior session |
+| BUG-6 | `R/constrained_objective.R` | `constrained_objective_v2()` CSM switch arm leaves `fun` undefined | prior session |
+| BUG-7 | `R/optFUN.R` | `gmv_opt_ptc()` target-return formulation wrong RHS | prior session |
+| BUG-8 | `R/generics.R` | `summary.optimize.portfolio.parallel` crashes with ROI solver | prior session |
+| BUG-9 | PerformanceAnalytics | `VaR`/`ES` portfolio_method='single' doesn't auto-compute moments | UPSTREAM ([#197](https://github.com/braverock/PerformanceAnalytics/issues/197)) |
+| BUG-10 | `R/optFUN.R` | `etl_opt` group constraint dimension mismatch | prior session |
+| BUG-11 | `R/optFUN.R` | `gmv_opt_toc`/`ptc`/`leverage` NULL cLO/cUP and dir-filter bug | prior session |
+| BUG-12 | `R/optFUN.R` | `gmv_opt_ptc` accidentally deleted from source | prior session |
+| BUG-13 | `R/optFUN.R` | `etl_milp_opt` group constraint references undefined `Amat` | `83fbeac` |
+| BUG-14 | `R/optimize.portfolio.R` | CVXR `EQSratio` missing from Charnes-Cooper conditions | `83fbeac` |
+| BUG-15 | `R/optimize.portfolio.R` | CVXR factor exposure constraints not scaled by `weight_scale` | `83fbeac` |
+| BUG-16 | `R/optimize.portfolio.R` | CVXR turnover constraint not scaled by `weight_scale` | `d857c7a` |
 
 ---
 
-## Coverage Status
+## Remaining Work
 
-| Checkpoint | R-only coverage |
-|------------|----------------:|
-| Before | 86.5% |
-| After | 92.9% |
+### Open Issues
 
-Both `R CMD check --as-cran` and `NOT_CRAN=true R CMD check` pass — tests: OK.
-Pre-existing warnings (`.gcda` files, missing `inst/doc`, version, compile flags) are unrelated to our work.
+**#51 — CSM in metaheuristics** (OPEN)
+- `constrained_objective()` has an empty block for CSM (line ~606 in `R/constrained_objective.R`)
+- Need a standalone `CSM()` function (extract from `extract_risk()` which currently couples to CVXR)
+- Performance concern: each evaluation requires SOCP solve; needs design for caching/warm-start or closed-form approximation
+- Medium effort, design-heavy
 
-### Per-file coverage (from `covr/coverage-2026-04-11.rds`)
+### Coverage Gaps (prioritized)
 
-| File | % | Notes |
-|------|--:|-------|
-| `R/charts.risk.R` | 86.36 | charting, hard to test |
-| `R/charts.multiple.R` | 87.65 | charting |
-| `R/plotFrontiers.R` | 89.09 | charting |
-| `R/charts.efficient.frontier.R` | 90.49 | charting |
-| `R/chart.concentration.R` | 90.63 | charting |
-| `R/trailingFUN.R` | 90.63 | |
-| `R/constraint_fn_map.R` | 90.75 | |
-| `R/EntropyProg.R` | 90.83 | |
-| `R/mult.layer.portfolio.R` | 90.91 | |
-| `R/optFUN.R` | 91.16 | remaining: try-error stops, milp paths, factor-exposure blocks |
-| `R/extract.efficient.frontier.R` | 91.58 | |
-| `R/optimize.portfolio.R` | 92.06 | |
-| `R/charts.RP.R` | 92.16 | charting |
-| `R/custom.covRob.R` | 92.19 | |
-| `R/charts.groups.R` | 92.86 | charting |
-| `R/random_portfolios.R` | 92.95 | |
-| `R/generics.R` | 93.41 | |
-| `R/constraints.R` | 93.45 | |
-| `R/constrained_objective.R` | 94.10 | remaining: penalty enabled=FALSE, some CSM/weight_conc paths |
-| `R/extractstats.R` | 94.22 | |
-| `R/moment.functions.R` | 94.29 | |
-| `R/utils.R` | 94.44 | |
-| `R/objective.R` | 94.67 | |
-| *(≥95% files not shown)* | | |
+1. **Charting functions** (~86–92%) — 6 files, ~100 uncovered lines total. Hard to test meaningfully in automated tests; diminishing returns
+2. **`R/trailingFUN.R`** (90.62%) — 3 uncovered lines
+3. **`R/EntropyProg.R`** (90.83%) — 11 uncovered lines
+4. **`R/mult.layer.portfolio.R`** (90.91%) — 5 uncovered lines
+5. **`R/constraint_fn_map.R`** (91.46%) — 42 uncovered lines, mostly edge cases in `rp_transform()`
+6. **`R/extract.efficient.frontier.R`** (91.58%) — 24 uncovered lines
+7. **`R/optimize.portfolio.R`** (92.13%) — 167 uncovered lines, many in hard-to-reach error paths
 
----
+### Other Forward-Looking Items
 
-## Next Steps
-
-The remaining uncovered lines fall into these categories (prioritized):
-
-1. **`R/optFUN.R`** (91.16%) — ~62 uncovered lines
-   - try-error `stop()` branches (lines 141, 253, 389, 482, 637) — triggered only when solver fails; hard to force
-   - `maxret_milp_opt` and `etl_milp_opt` group/factor-exposure paths (lines 606–611, 692–693)
-   - `gmv_opt_toc`/`ptc`/`leverage` with non-zero `moments$mean` target path (lines 717–720, 856–857, etc.)
-   - `max_sr_opt` factor-exposure block (lines 1103–1118)
-
-2. **`R/constrained_objective.R`** (94.10%) — ~19 uncovered lines
-   - `penalty_objective` with `enabled=FALSE` (lines 100, 128–129, 137, 158, 196, 214–219, 242)
-   - Line 371 (`stop("portfolio object is not of class portfolio")`) — effectively dead code
-   - Lines 581–582, 592, 603 — v2 objective penalty edge cases
-   - Line 649 — v2 message branch (known-but-failing function)
-
-3. **`R/trailingFUN.R`** (90.63%), **`R/constraint_fn_map.R`** (90.75%), **`R/EntropyProg.R`** (90.83%) — moderate effort
+- **Merge & push** `feature/optimization-solvers-vignette` branch after review
+- **CRAN submission prep:** ensure `R CMD check --as-cran` is clean, vignette builds without internet
+- **`extract_risk()` CVXR coupling:** If CVXR were ever moved to Suggests, `extract_risk()` and its callers (`meanvar.efficient.frontier()`, `meanrisk.efficient.frontier()`, `plotFrontiers()`) would need `requireNamespace()` guards

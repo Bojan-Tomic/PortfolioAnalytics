@@ -25,15 +25,33 @@ knitr:
 #| include: false
 library(PortfolioAnalytics)
 library(PerformanceAnalytics)
+library(CVXR)
+library(DEoptim)
+library(GenSA)
+library(pso)
+library(ROI)
+library(ROI.plugin.quadprog)
+library(ROI.plugin.glpk)
 ```
 
 ## Introduction
 
 PortfolioAnalytics provides a flexible framework for portfolio optimization
 that separates the *specification* of objectives and constraints from the
-*solver* used to find optimal portfolios. This solver-agnostic design allows
+*solver* used to find optimal portfolios.  This solver-agnostic design allows
 users to swap optimization backends without rewriting their portfolio
 specification, making it straightforward to compare results across methods.
+
+The typical workflow is:
+
+1. Create a portfolio specification with `portfolio.spec()`
+2. Add constraints with `add.constraint()`
+3. Add objectives with `add.objective()`
+4. Solve with `optimize.portfolio()`, passing an `optimize_method`
+
+Because the first three steps are solver-independent, comparing solvers
+requires changing only the `optimize_method` argument (and, in some cases,
+a ratio flag such as `maxSR=TRUE`).
 
 This vignette provides:
 
@@ -45,135 +63,1695 @@ This vignette provides:
 
 ## Solver Overview
 
-PortfolioAnalytics supports solvers spanning three categories: convex/closed-form
-solvers that exploit problem structure for exact solutions, metaheuristic solvers
-that use stochastic search for arbitrary objectives, and multi-objective solvers
-for Pareto optimization.
+PortfolioAnalytics supports solvers spanning three categories: **convex
+solvers** that exploit problem structure for exact solutions, **metaheuristic
+solvers** that use stochastic search for arbitrary objectives, and a
+**multi-objective solver** for Pareto optimization.
 
-### Convex / Closed-Form Solvers
+### Convex Solvers
 
 #### CVXR
 
-CVXR provides the most comprehensive closed-form solver support in
-PortfolioAnalytics. It uses disciplined convex programming (DCP) to
-model and solve LP, QP, and SOCP problems, supporting variance, ES/CVaR,
-CSM, EQS, and HHI objectives natively.
+CVXR provides the most comprehensive convex solver support in
+PortfolioAnalytics.  It uses Disciplined Convex Programming (DCP) to model
+and solve LP, QP, and SOCP problems.  Supported objectives include variance,
+ES/CVaR, CSM (Coherent Second Moment), EQS (Expected Quadratic Shortfall),
+and HHI (weight concentration), as well as ratio objectives (Sharpe, STARR,
+CSM ratio, EQS ratio) via Charnes-Cooper transformations.
 
-<!-- TODO: CVXR sub-solvers (OSQP, CLARABEL, SCS, ECOS, etc.) -->
+CVXR delegates to a backend solver selected automatically or by the user:
+
+| Backend | Problem classes | Selection |
+|---------|----------------|-----------|
+| OSQP | QP (variance, Sharpe) | Default for QP problems |
+| CLARABEL | LP, QP, SOCP (ES, CSM, EQS, HHI) | Default for non-QP problems |
+| SCS | LP, QP, SOCP | User-specified |
+| ECOS | LP, SOCP | User-specified |
+| GLPK | LP, MILP | User-specified |
+| MOSEK | LP, QP, SOCP | User-specified (commercial) |
+| GUROBI | LP, QP, MILP | User-specified (commercial) |
+
+To select a backend explicitly, pass a two-element vector:
+`optimize_method = c("CVXR", "ECOS")`.
 
 #### ROI
 
-The R Optimization Infrastructure (ROI) dispatches to plugin solvers:
-`quadprog` for QP problems (min variance, max quadratic utility) and
-`glpk`/`symphony` for LP/MILP problems (max return, min ES/CVaR).
+The R Optimization Infrastructure (ROI) dispatches to plugin solvers based on
+problem structure.  When `optimize_method = "ROI"`, the plugin is selected
+automatically:
+
+| Plugin | Problem class | Used for |
+|--------|--------------|----------|
+| `quadprog` | QP | Min variance, max quadratic utility, max Sharpe ratio |
+| `glpk` | LP/MILP | Max return, min ES/CVaR, max STARR, position limits |
+| `symphony` | LP/MILP | Alternative to glpk |
+
+Users can also specify the plugin directly:
+`optimize_method = "quadprog"` or `optimize_method = "glpk"`.
+
+ROI additionally supports turnover constraints (`gmv_opt_toc`), proportional
+transaction costs (`gmv_opt_ptc`), and leverage exposure constraints
+(`gmv_opt_leverage`) for QP problems, as well as position limits via MILP
+formulations.
 
 #### osqp
 
-A standalone QP solver supporting mean and variance/StdDev objectives.
-Fast for pure quadratic problems but limited in objective scope.
+A standalone QP solver accessed via `optimize_method = "osqp"`.  It supports
+mean and variance/StdDev objectives only.  When both are specified, osqp
+solves the maximum Sharpe ratio problem natively using a Charnes-Cooper
+(homogeneous) QP reformulation---no `maxSR` flag is needed.
 
 #### Rglpk
 
-A standalone LP/MILP solver supporting mean and ES/CVaR objectives.
+A standalone LP/MILP solver accessed via `optimize_method = "Rglpk"`.  It
+supports mean and ES/CVaR objectives.  When both are specified, Rglpk solves
+the maximum STARR ratio problem natively via a Charnes-Cooper LP
+transformation.  Position limits (including group position limits) are
+supported via MILP formulations with binary variables.
 
 ### Metaheuristic Solvers
 
-These solvers accept *any* R function as an objective, making them suitable
-for non-convex or black-box problems. The trade-off is longer run times and
-no guarantee of global optimality.
+Metaheuristic solvers minimize `constrained_objective()`, a penalty-based
+wrapper that evaluates *any* R function as an objective and adds penalty
+terms for constraint violations.  This makes them suitable for non-convex or
+black-box problems at the cost of longer run times and no guarantee of
+global optimality.
 
-- **DEoptim** -- Differential Evolution
-- **GenSA** -- Generalized Simulated Annealing
-- **pso** -- Particle Swarm Optimization
-- **random** -- Random portfolio search (built-in)
+| Solver | Package | Method | Key parameters |
+|--------|---------|--------|----------------|
+| DEoptim | `DEoptim` | Differential Evolution | `itermax`, `NP`, `strategy` (default: JADE) |
+| GenSA | `GenSA` | Generalized Simulated Annealing | `maxit`, `temperature` |
+| pso | `pso` | Particle Swarm Optimization | `maxit`, `s` (swarm size) |
+| random | built-in | Random portfolio search | `search_size`, `rp_method` |
+
+DEoptim uses `fnMap` (the `fn_map()` function) to project candidate solutions
+back to feasible space after each mutation step, while GenSA and pso rely on
+internal normalization via `fn_map()` inside `constrained_objective()`.
+The `fn_map()` function enforces box, leverage, group, position limit, and
+factor exposure constraints.  For factor exposure, `fn_map()` uses a QP
+projection step (via `quadprog::solve.QP`) that finds the nearest feasible
+weight vector satisfying all linear constraints simultaneously.
+The `random` method generates a matrix of feasible random portfolios up front
+and evaluates them all, selecting the best.
+
+::: {.callout-note}
+Metaheuristic solvers should generally **not** be used for problems that have
+a convex formulation (minimum variance, minimum ES, maximum Sharpe, etc.).
+Convex solvers are faster, deterministic, and guaranteed to find the global
+optimum.  Metaheuristic solvers are included in the convex worked examples
+below for comparison and completeness, but in practice they are most valuable
+for non-convex objectives such as risk budgets, custom risk measures, or
+problems with non-convex constraints.
+
+The worked examples in this vignette use a small number of iterations
+(`search_size = 5000`) and default hyperparameters for all metaheuristic
+solvers.  In practice, increasing the number of generations/iterations and
+tuning solver-specific hyperparameters (e.g., `NP` and `strategy` for
+DEoptim, `temperature` for GenSA, swarm size `s` for pso) can be expected to
+improve convergence speed and solution quality.
+:::
 
 ### Multi-Objective
 
-- **mco** -- NSGA-II for Pareto-optimal frontiers across multiple objectives
+The `mco` package (NSGA-II) is available via `optimize_method = "mco"` for
+Pareto-optimal frontier computation across multiple objectives simultaneously.
 
-<!-- TODO: solver summary table -->
+### Solver Summary
+
+| Solver | Type | Problem classes | Ratio objectives | Position limits |
+|--------|------|----------------|-----------------|-----------------|
+| CVXR | Convex | LP, QP, SOCP | maxSR, maxSTARR, CSMratio, EQSratio | No |
+| ROI | Convex | QP, LP/MILP | maxSR, maxSTARR | Yes (MILP) |
+| osqp | Convex | QP | maxSR (implicit) | No |
+| Rglpk | Convex | LP/MILP | maxSTARR (implicit) | Yes (MILP) |
+| DEoptim | Metaheuristic | Any | Via combined objectives | Via penalty |
+| GenSA | Metaheuristic | Any | Via combined objectives | Via penalty |
+| pso | Metaheuristic | Any | Via combined objectives | Via penalty |
+| random | Metaheuristic | Any | Via combined objectives | Via penalty |
+| mco | Multi-objective | Any (Pareto) | N/A | Via penalty |
+
 
 ## Objective & Constraint Support Matrix
 
-<!-- TODO: master compatibility matrix -->
-<!-- Rows: maxret, minvar, minES, minCSM, maxSR, maxSTARR, CSMratio, -->
-<!--        EQSratio, maxQU, riskbudget, weight_concentration            -->
-<!-- Columns: CVXR, ROI, osqp, Rglpk, DEoptim, GenSA, pso, random, mco  -->
+### Objective Support
+
+The following table maps each optimization problem to the solvers that
+support it.  **Native** means the solver handles the problem with a direct
+mathematical formulation.  **Penalty** means the solver uses
+`constrained_objective()` with penalty terms for constraint satisfaction.
+
+| Problem | CVXR | ROI | osqp | Rglpk | DEoptim | GenSA | pso | random |
+|---------|:----:|:---:|:----:|:-----:|:-------:|:-----:|:---:|:------:|
+| Max return | Native | Native | Native | Native | Penalty | Penalty | Penalty | Penalty |
+| Min variance / StdDev | Native | Native | Native | -- | Penalty | Penalty | Penalty | Penalty |
+| Min ES / CVaR | Native | Native | -- | Native | Penalty | Penalty | Penalty | Penalty |
+| Min CSM | Native | -- | -- | -- | Penalty | Penalty | Penalty | Penalty |
+| Min EQS | Native | -- | -- | -- | -- | -- | -- | -- |
+| Max Sharpe ratio | Native | Native | Native | -- | Penalty | Penalty | Penalty | Penalty |
+| Max STARR (mean/ES) | Native | Native | -- | Native | Penalty | Penalty | Penalty | Penalty |
+| Max CSM ratio | Native | -- | -- | -- | Penalty | Penalty | Penalty | Penalty |
+| Max EQS ratio | Native | -- | -- | -- | -- | -- | -- | -- |
+| Max quadratic utility | Native | Native | -- | -- | Penalty | Penalty | Penalty | Penalty |
+| Min variance + HHI | Native | Native | -- | -- | Penalty | Penalty | Penalty | Penalty |
+| Risk budget (ES) | -- | -- | -- | -- | Penalty | Penalty | Penalty | Penalty |
+| Risk budget (StdDev) | -- | -- | -- | -- | Penalty | Penalty | Penalty | Penalty |
+
+**Notes:**
+
+- CSM and EQS objectives are available only through CVXR.  Metaheuristic
+  solvers can minimize CSM indirectly by specifying a custom objective
+  function, but there is no built-in `constrained_objective` dispatch for CSM
+- Risk budget objectives (including equal risk contribution) require
+  component risk decomposition and are only supported by metaheuristic solvers
+- osqp solves max Sharpe implicitly when both mean and variance objectives
+  are present (Charnes-Cooper QP); no `maxSR` flag is needed
+- Rglpk solves max STARR implicitly when both mean and ES objectives are
+  present (Charnes-Cooper LP)
+
+### Constraint Support
+
+| Constraint | CVXR | ROI | osqp | Rglpk | Metaheuristic |
+|-----------|:----:|:---:|:----:|:-----:|:------------:|
+| Box (min/max per asset) | Yes | Yes | Yes | Yes | Yes (penalty) |
+| Weight sum / leverage | Yes | Yes | Yes | Yes | Yes (penalty) |
+| Full investment | Yes | Yes | Yes | Yes | Yes (penalty) |
+| Long only | Yes | Yes | Yes | Yes | Yes (penalty) |
+| Group | Yes | Yes | Yes | Yes | Yes (penalty) |
+| Target return | Yes | Yes | Yes | Yes | Yes (penalty) |
+| Factor exposure | Yes | Yes | Yes | Yes | Yes (QP projection) |
+| Factor exposure (MILP) | -- | Yes | -- | -- | Yes (QP projection) |
+| Turnover | Yes | Yes^1^ | -- | -- | Yes (penalty) |
+| Transaction cost | -- | Yes^2^ | -- | -- | Yes (penalty) |
+| Position limit | -- | Yes^3^ | -- | Yes^3^ | Yes (penalty) |
+| Leverage exposure | -- | Yes^4^ | -- | -- | Yes (penalty) |
+| Diversification | -- | -- | -- | -- | Yes (penalty) |
+
+^1^ QP problems only, via `gmv_opt_toc()`.
+^2^ QP problems only, via `gmv_opt_ptc()`.
+^3^ Via MILP formulation with binary variables.
+^4^ QP problems only, via `gmv_opt_leverage()`.
+
 
 ## Worked Examples
 
 ### Data Setup
 
+All examples use a subset of the EDHEC hedge fund index data.
+
 ```{r}
 #| label: data-setup
-#| eval: false
 data(edhec)
 R <- edhec["2008::2012", 1:6]
-
 funds <- colnames(R)
-port <- portfolio.spec(assets = funds)
-port <- add.constraint(port, type = "full_investment")
-port <- add.constraint(port, type = "long_only")
+```
+
+We define a base portfolio specification with full-investment and long-only
+constraints that will be reused across examples.
+
+```{r}
+#| label: base-portfolio
+base.port <- portfolio.spec(assets = funds)
+base.port <- add.constraint(base.port, type = "full_investment")
+base.port <- add.constraint(base.port, type = "long_only")
 ```
 
 ### Minimum Variance
 
-<!-- TODO: CVXR, ROI, osqp, DEoptim, GenSA, pso, random -->
+Minimize portfolio variance (equivalently, standard deviation).  This is a
+QP problem supported natively by CVXR, ROI, and osqp.
+
+```{r}
+#| label: minvar-setup
+minvar.port <- add.objective(base.port, type = "risk", name = "StdDev")
+```
+
+#### CVXR
+
+```{r}
+#| label: minvar-cvxr
+minvar.cvxr <- optimize.portfolio(R, minvar.port, optimize_method = "CVXR")
+minvar.cvxr
+```
+
+#### ROI
+
+```{r}
+#| label: minvar-roi
+minvar.roi <- optimize.portfolio(R, minvar.port, optimize_method = "ROI")
+minvar.roi
+```
+
+#### osqp
+
+```{r}
+#| label: minvar-osqp
+minvar.osqp <- optimize.portfolio(R, minvar.port, optimize_method = "osqp")
+minvar.osqp
+```
+
+#### DEoptim
+
+Metaheuristic solvers require slightly relaxed leverage constraints because
+they work with continuous weight vectors that may not sum to exactly 1.
+
+```{r}
+#| label: minvar-deoptim
+minvar.port.meta <- base.port
+minvar.port.meta$constraints[[1]]$min_sum <- 0.99
+minvar.port.meta$constraints[[1]]$max_sum <- 1.01
+minvar.port.meta <- add.objective(minvar.port.meta, type = "risk",
+                                  name = "StdDev")
+
+set.seed(42)
+minvar.de <- optimize.portfolio(R, minvar.port.meta,
+                                optimize_method = "DEoptim",
+                                search_size = 5000, trace = TRUE)
+minvar.de
+```
+
+#### GenSA
+
+```{r}
+#| label: minvar-gensa
+set.seed(42)
+minvar.gensa <- optimize.portfolio(R, minvar.port.meta,
+                                   optimize_method = "GenSA",
+                                   search_size = 5000, trace = TRUE)
+minvar.gensa
+```
+
+#### pso
+
+```{r}
+#| label: minvar-pso
+set.seed(42)
+minvar.pso <- optimize.portfolio(R, minvar.port.meta,
+                                 optimize_method = "pso",
+                                 search_size = 5000, trace = TRUE)
+minvar.pso
+```
+
+#### Comparison
+
+```{r}
+#| label: minvar-compare
+minvar.weights <- round(cbind(
+  CVXR     = minvar.cvxr$weights,
+  ROI      = minvar.roi$weights,
+  osqp     = minvar.osqp$weights,
+  DEoptim  = minvar.de$weights,
+  GenSA    = minvar.gensa$weights,
+  pso      = minvar.pso$weights
+), 4)
+knitr::kable(minvar.weights, caption = "Minimum Variance Weights")
+```
+
 
 ### Minimum ES / CVaR
 
-<!-- TODO: CVXR, ROI, Rglpk, DEoptim, GenSA, pso, random -->
+Minimize Expected Shortfall (also called CVaR or ETL) at the 95% confidence
+level.  This is an LP problem (Rockafellar-Uryasev formulation) supported
+natively by CVXR, ROI, and Rglpk.
+
+```{r}
+#| label: mines-setup
+mines.port <- add.objective(base.port, type = "risk", name = "ES",
+                            arguments = list(p = 0.95))
+```
+
+#### CVXR
+
+```{r}
+#| label: mines-cvxr
+mines.cvxr <- optimize.portfolio(R, mines.port, optimize_method = "CVXR")
+mines.cvxr
+```
+
+#### ROI
+
+```{r}
+#| label: mines-roi
+mines.roi <- optimize.portfolio(R, mines.port, optimize_method = "ROI")
+mines.roi
+```
+
+#### Rglpk
+
+```{r}
+#| label: mines-rglpk
+mines.rglpk <- optimize.portfolio(R, mines.port, optimize_method = "Rglpk")
+mines.rglpk
+```
+
+#### DEoptim
+
+```{r}
+#| label: mines-deoptim
+mines.port.meta <- base.port
+mines.port.meta$constraints[[1]]$min_sum <- 0.99
+mines.port.meta$constraints[[1]]$max_sum <- 1.01
+mines.port.meta <- add.objective(mines.port.meta, type = "risk", name = "ES",
+                                 arguments = list(p = 0.95))
+
+set.seed(42)
+mines.de <- optimize.portfolio(R, mines.port.meta,
+                               optimize_method = "DEoptim",
+                               search_size = 5000, trace = TRUE)
+mines.de
+```
+
+#### GenSA
+
+```{r}
+#| label: mines-gensa
+set.seed(42)
+mines.gensa <- optimize.portfolio(R, mines.port.meta,
+                                  optimize_method = "GenSA",
+                                  search_size = 5000, trace = TRUE)
+mines.gensa
+```
+
+#### pso
+
+```{r}
+#| label: mines-pso
+set.seed(42)
+mines.pso <- optimize.portfolio(R, mines.port.meta,
+                                optimize_method = "pso",
+                                search_size = 5000, trace = TRUE)
+mines.pso
+```
+
+#### Comparison
+
+```{r}
+#| label: mines-compare
+mines.weights <- round(cbind(
+  CVXR    = mines.cvxr$weights,
+  ROI     = mines.roi$weights,
+  Rglpk   = mines.rglpk$weights,
+  DEoptim = mines.de$weights,
+  GenSA   = mines.gensa$weights,
+  pso     = mines.pso$weights
+), 4)
+knitr::kable(mines.weights, caption = "Minimum ES Weights")
+```
+
 
 ### Minimum CSM
 
-<!-- TODO: CVXR (native), DEoptim, GenSA, pso, random (manual) -->
+Minimize the Coherent Second Moment, a downside risk measure that combines
+VaR and the second moment of losses beyond VaR.  This is an SOCP problem
+available only through CVXR among the convex solvers.
+
+```{r}
+#| label: mincsm-setup
+mincsm.port <- add.objective(base.port, type = "risk", name = "CSM",
+                             arguments = list(p = 0.05))
+```
+
+#### CVXR
+
+```{r}
+#| label: mincsm-cvxr
+mincsm.cvxr <- optimize.portfolio(R, mincsm.port, optimize_method = "CVXR")
+mincsm.cvxr
+```
+
 
 ### Maximum Return
 
-<!-- TODO: CVXR, ROI, Rglpk, DEoptim, GenSA, pso, random -->
+Maximize expected (mean) return.  This is an LP problem supported by all
+convex solvers.
+
+```{r}
+#| label: maxret-setup
+maxret.port <- add.objective(base.port, type = "return", name = "mean")
+```
+
+#### CVXR
+
+```{r}
+#| label: maxret-cvxr
+maxret.cvxr <- optimize.portfolio(R, maxret.port, optimize_method = "CVXR")
+maxret.cvxr
+```
+
+#### ROI
+
+```{r}
+#| label: maxret-roi
+maxret.roi <- optimize.portfolio(R, maxret.port, optimize_method = "ROI")
+maxret.roi
+```
+
+#### Rglpk
+
+```{r}
+#| label: maxret-rglpk
+maxret.rglpk <- optimize.portfolio(R, maxret.port, optimize_method = "Rglpk")
+maxret.rglpk
+```
+
+#### Comparison
+
+```{r}
+#| label: maxret-compare
+maxret.weights <- round(cbind(
+  CVXR  = maxret.cvxr$weights,
+  ROI   = maxret.roi$weights,
+  Rglpk = maxret.rglpk$weights
+), 4)
+knitr::kable(maxret.weights, caption = "Maximum Return Weights")
+```
+
+With long-only and full-investment constraints, maximum return concentrates
+entirely in the single highest-returning asset.  All convex solvers produce
+identical results.
+
 
 ### Maximum Sharpe Ratio
 
-<!-- TODO: CVXR, ROI, DEoptim, GenSA, pso, random -->
+Maximize the ratio of mean return to standard deviation.  This is a
+fractional program reformulated as a QP via the Charnes-Cooper transformation.
 
-### Maximum STARR
+The portfolio requires both a return and a risk objective:
 
-<!-- TODO: CVXR, ROI, DEoptim, GenSA, pso, random -->
+```{r}
+#| label: maxsr-setup
+maxsr.port <- add.objective(base.port, type = "return", name = "mean")
+maxsr.port <- add.objective(maxsr.port, type = "risk", name = "StdDev")
+```
+
+#### CVXR
+
+```{r}
+#| label: maxsr-cvxr
+maxsr.cvxr <- optimize.portfolio(R, maxsr.port,
+                                 optimize_method = "CVXR", maxSR = TRUE)
+maxsr.cvxr
+```
+
+#### ROI
+
+```{r}
+#| label: maxsr-roi
+maxsr.roi <- optimize.portfolio(R, maxsr.port,
+                                optimize_method = "ROI", maxSR = TRUE)
+maxsr.roi
+```
+
+::: {.callout-important}
+The `maxSR = TRUE` flag is **required** for CVXR and ROI.  Without it, both
+solvers default to maximizing quadratic utility (mean - lambda * variance)
+rather than the Sharpe ratio.
+:::
+
+#### osqp
+
+osqp solves the Sharpe ratio problem **implicitly** when both mean and
+variance objectives are present.  No `maxSR` flag is needed.
+
+```{r}
+#| label: maxsr-osqp
+maxsr.osqp <- optimize.portfolio(R, maxsr.port, optimize_method = "osqp")
+maxsr.osqp
+```
+
+#### DEoptim
+
+Metaheuristic solvers approximate the Sharpe ratio by combining both
+objectives: `out = -1 * mean + 1 * StdDev`.  This drives the optimizer
+toward high-return, low-risk portfolios but is not mathematically equivalent
+to maximizing mean/StdDev.
+
+```{r}
+#| label: maxsr-deoptim
+maxsr.port.meta <- base.port
+maxsr.port.meta$constraints[[1]]$min_sum <- 0.99
+maxsr.port.meta$constraints[[1]]$max_sum <- 1.01
+maxsr.port.meta <- add.objective(maxsr.port.meta, type = "return",
+                                 name = "mean")
+maxsr.port.meta <- add.objective(maxsr.port.meta, type = "risk",
+                                 name = "StdDev")
+
+set.seed(42)
+maxsr.de <- optimize.portfolio(R, maxsr.port.meta,
+                               optimize_method = "DEoptim",
+                               search_size = 5000, trace = TRUE)
+maxsr.de
+```
+
+#### GenSA
+
+```{r}
+#| label: maxsr-gensa
+set.seed(42)
+maxsr.gensa <- optimize.portfolio(R, maxsr.port.meta,
+                                  optimize_method = "GenSA",
+                                  search_size = 5000, trace = TRUE)
+maxsr.gensa
+```
+
+#### pso
+
+```{r}
+#| label: maxsr-pso
+set.seed(42)
+maxsr.pso <- optimize.portfolio(R, maxsr.port.meta,
+                                optimize_method = "pso",
+                                search_size = 5000, trace = TRUE)
+maxsr.pso
+```
+
+#### Comparison
+
+```{r}
+#| label: maxsr-compare
+maxsr.weights <- round(cbind(
+  CVXR    = maxsr.cvxr$weights,
+  ROI     = maxsr.roi$weights,
+  osqp    = maxsr.osqp$weights,
+  DEoptim = maxsr.de$weights,
+  GenSA   = maxsr.gensa$weights,
+  pso     = maxsr.pso$weights
+), 4)
+knitr::kable(maxsr.weights, caption = "Maximum Sharpe Ratio Weights")
+```
+
+
+### Maximum STARR (Mean / ES)
+
+Maximize the STARR ratio: mean return divided by Expected Shortfall.  This
+is a fractional LP solved via Charnes-Cooper transformation.
+
+```{r}
+#| label: maxstarr-setup
+maxstarr.port <- add.objective(base.port, type = "return", name = "mean")
+maxstarr.port <- add.objective(maxstarr.port, type = "risk", name = "ES",
+                               arguments = list(p = 0.95))
+```
+
+#### CVXR
+
+```{r}
+#| label: maxstarr-cvxr
+maxstarr.cvxr <- optimize.portfolio(R, maxstarr.port,
+                                    optimize_method = "CVXR")
+maxstarr.cvxr
+```
+
+#### ROI
+
+```{r}
+#| label: maxstarr-roi
+maxstarr.roi <- optimize.portfolio(R, maxstarr.port,
+                                   optimize_method = "ROI")
+maxstarr.roi
+```
+
+::: {.callout-note}
+Unlike `maxSR`, the `maxSTARR` flag defaults to `TRUE` for both CVXR and ROI
+when both mean and ES objectives are present.  Pass `maxSTARR = FALSE` to
+minimize ES subject to a mean-ES trade-off instead.
+:::
+
+#### Rglpk
+
+Rglpk solves the STARR ratio implicitly when both mean and ES objectives are
+present, using its own Charnes-Cooper LP formulation.
+
+```{r}
+#| label: maxstarr-rglpk
+maxstarr.rglpk <- optimize.portfolio(R, maxstarr.port,
+                                     optimize_method = "Rglpk")
+maxstarr.rglpk
+```
+
+#### DEoptim
+
+Metaheuristic solvers approximate the STARR ratio by combining both
+objectives: `out = -1 * mean + 1 * ES`.
+
+```{r}
+#| label: maxstarr-deoptim
+maxstarr.port.meta <- base.port
+maxstarr.port.meta$constraints[[1]]$min_sum <- 0.99
+maxstarr.port.meta$constraints[[1]]$max_sum <- 1.01
+maxstarr.port.meta <- add.objective(maxstarr.port.meta, type = "return",
+                                    name = "mean")
+maxstarr.port.meta <- add.objective(maxstarr.port.meta, type = "risk",
+                                    name = "ES",
+                                    arguments = list(p = 0.95))
+
+set.seed(42)
+maxstarr.de <- optimize.portfolio(R, maxstarr.port.meta,
+                                  optimize_method = "DEoptim",
+                                  search_size = 5000, trace = TRUE)
+maxstarr.de
+```
+
+#### GenSA
+
+```{r}
+#| label: maxstarr-gensa
+set.seed(42)
+maxstarr.gensa <- optimize.portfolio(R, maxstarr.port.meta,
+                                     optimize_method = "GenSA",
+                                     search_size = 5000, trace = TRUE)
+maxstarr.gensa
+```
+
+#### pso
+
+```{r}
+#| label: maxstarr-pso
+set.seed(42)
+maxstarr.pso <- optimize.portfolio(R, maxstarr.port.meta,
+                                   optimize_method = "pso",
+                                   search_size = 5000, trace = TRUE)
+maxstarr.pso
+```
+
+#### Comparison
+
+```{r}
+#| label: maxstarr-compare
+maxstarr.weights <- round(cbind(
+  CVXR    = maxstarr.cvxr$weights,
+  ROI     = maxstarr.roi$weights,
+  Rglpk   = maxstarr.rglpk$weights,
+  DEoptim = maxstarr.de$weights,
+  GenSA   = maxstarr.gensa$weights,
+  pso     = maxstarr.pso$weights
+), 4)
+knitr::kable(maxstarr.weights, caption = "Maximum STARR Weights")
+```
+
 
 ### Maximum Quadratic Utility
 
-<!-- TODO: ROI, CVXR, DEoptim, GenSA, pso, random -->
+Maximize mean return minus a risk penalty: $U = \mu^T w - \frac{\lambda}{2} w^T \Sigma w$.
+The `risk_aversion` parameter controls the trade-off.
+
+```{r}
+#| label: maxqu-setup
+maxqu.port <- add.objective(base.port, type = "return", name = "mean")
+maxqu.port <- add.objective(maxqu.port, type = "risk", name = "StdDev",
+                            risk_aversion = 4)
+```
+
+#### CVXR
+
+When both mean and variance objectives are present and `maxSR` is not set,
+CVXR solves the quadratic utility problem.
+
+```{r}
+#| label: maxqu-cvxr
+maxqu.cvxr <- optimize.portfolio(R, maxqu.port, optimize_method = "CVXR")
+maxqu.cvxr
+```
+
+#### ROI
+
+ROI also defaults to quadratic utility when `maxSR` is not set.
+
+```{r}
+#| label: maxqu-roi
+maxqu.roi <- optimize.portfolio(R, maxqu.port, optimize_method = "ROI")
+maxqu.roi
+```
+
+#### DEoptim
+
+```{r}
+#| label: maxqu-deoptim
+maxqu.port.meta <- base.port
+maxqu.port.meta$constraints[[1]]$min_sum <- 0.99
+maxqu.port.meta$constraints[[1]]$max_sum <- 1.01
+maxqu.port.meta <- add.objective(maxqu.port.meta, type = "return",
+                                 name = "mean")
+maxqu.port.meta <- add.objective(maxqu.port.meta, type = "risk",
+                                 name = "StdDev", risk_aversion = 4)
+
+set.seed(42)
+maxqu.de <- optimize.portfolio(R, maxqu.port.meta,
+                               optimize_method = "DEoptim",
+                               search_size = 5000, trace = TRUE)
+maxqu.de
+```
+
+#### GenSA
+
+```{r}
+#| label: maxqu-gensa
+set.seed(42)
+maxqu.gensa <- optimize.portfolio(R, maxqu.port.meta,
+                                  optimize_method = "GenSA",
+                                  search_size = 5000, trace = TRUE)
+maxqu.gensa
+```
+
+#### pso
+
+```{r}
+#| label: maxqu-pso
+set.seed(42)
+maxqu.pso <- optimize.portfolio(R, maxqu.port.meta,
+                                optimize_method = "pso",
+                                search_size = 5000, trace = TRUE)
+maxqu.pso
+```
+
+#### Comparison
+
+```{r}
+#| label: maxqu-compare
+maxqu.weights <- round(cbind(
+  CVXR    = maxqu.cvxr$weights,
+  ROI     = maxqu.roi$weights,
+  DEoptim = maxqu.de$weights,
+  GenSA   = maxqu.gensa$weights,
+  pso     = maxqu.pso$weights
+), 4)
+knitr::kable(maxqu.weights, caption = "Maximum Quadratic Utility Weights")
+```
+
 
 ### Risk Budgets
 
-<!-- TODO: DEoptim, GenSA, pso, random -->
+Risk budget objectives decompose total portfolio risk into per-asset
+contributions and constrain or minimize the concentration of those
+contributions.  This requires component risk decomposition, which is only
+available through metaheuristic solvers.
+
+#### Equal ES Risk Contribution
+
+```{r}
+#| label: erc-setup
+erc.port <- base.port
+erc.port$constraints[[1]]$min_sum <- 0.99
+erc.port$constraints[[1]]$max_sum <- 1.01
+
+erc.port <- add.objective(erc.port, type = "risk_budget", name = "ES",
+                          min_concentration = TRUE,
+                          arguments = list(p = 0.95))
+```
+
+```{r}
+#| label: erc-deoptim
+set.seed(42)
+erc.de <- optimize.portfolio(R, erc.port,
+                             optimize_method = "DEoptim",
+                             search_size = 5000, trace = TRUE)
+erc.de
+```
+
+```{r}
+#| label: erc-gensa
+set.seed(42)
+erc.gensa <- optimize.portfolio(R, erc.port,
+                                optimize_method = "GenSA",
+                                search_size = 5000, trace = TRUE)
+erc.gensa
+```
+
+```{r}
+#| label: erc-pso
+set.seed(42)
+erc.pso <- optimize.portfolio(R, erc.port,
+                              optimize_method = "pso",
+                              search_size = 5000, trace = TRUE)
+erc.pso
+```
+
+#### ERC Comparison
+
+```{r}
+#| label: erc-compare
+erc.weights <- round(cbind(
+  DEoptim = erc.de$weights,
+  GenSA   = erc.gensa$weights,
+  pso     = erc.pso$weights
+), 4)
+knitr::kable(erc.weights, caption = "Equal Risk Contribution Weights")
+```
+
+```{r}
+#| label: erc-pct-contrib
+# Percentage ES contribution for each solver
+erc.pct <- round(cbind(
+  DEoptim = erc.de$objective_measures$ES$pct_contrib_MES,
+  GenSA   = erc.gensa$objective_measures$ES$pct_contrib_MES,
+  pso     = erc.pso$objective_measures$ES$pct_contrib_MES
+), 4)
+knitr::kable(erc.pct, caption = "ES Percentage Risk Contributions")
+```
+
+#### Bounded Risk Contribution
+
+Constrain each asset's percentage risk contribution to be at most 40%:
+
+```{r}
+#| label: riskbudget-setup
+rb.port <- base.port
+rb.port$constraints[[1]]$min_sum <- 0.99
+rb.port$constraints[[1]]$max_sum <- 1.01
+
+rb.port <- add.objective(rb.port, type = "return", name = "mean")
+rb.port <- add.objective(rb.port, type = "risk_budget", name = "ES",
+                         max_prisk = 0.4,
+                         arguments = list(p = 0.95))
+```
+
+```{r}
+#| label: riskbudget-deoptim
+set.seed(42)
+rb.de <- optimize.portfolio(R, rb.port,
+                            optimize_method = "DEoptim",
+                            search_size = 5000, trace = TRUE)
+rb.de
+```
+
+```{r}
+#| label: riskbudget-gensa
+set.seed(42)
+rb.gensa <- optimize.portfolio(R, rb.port,
+                               optimize_method = "GenSA",
+                               search_size = 5000, trace = TRUE)
+rb.gensa
+```
+
+```{r}
+#| label: riskbudget-pso
+set.seed(42)
+rb.pso <- optimize.portfolio(R, rb.port,
+                             optimize_method = "pso",
+                             search_size = 5000, trace = TRUE)
+rb.pso
+```
+
+#### Bounded Risk Budget Comparison
+
+```{r}
+#| label: riskbudget-compare
+rb.weights <- round(cbind(
+  DEoptim = rb.de$weights,
+  GenSA   = rb.gensa$weights,
+  pso     = rb.pso$weights
+), 4)
+knitr::kable(rb.weights, caption = "Bounded Risk Budget Weights")
+```
+
+```{r}
+#| label: riskbudget-pct-contrib
+rb.pct <- round(cbind(
+  DEoptim = rb.de$objective_measures$ES$pct_contrib_MES,
+  GenSA   = rb.gensa$objective_measures$ES$pct_contrib_MES,
+  pso     = rb.pso$objective_measures$ES$pct_contrib_MES
+), 4)
+knitr::kable(rb.pct, caption = "ES Percentage Risk Contributions (max 40%)")
+```
+
 
 ### Weight Concentration (HHI)
 
-<!-- TODO: CVXR, ROI, DEoptim, GenSA, pso, random -->
+The Herfindahl-Hirschman Index (HHI) penalty discourages weight
+concentration by adding $\lambda_\text{HHI} \sum w_i^2$ to the objective.
+
+```{r}
+#| label: hhi-setup
+hhi.port <- add.objective(base.port, type = "risk", name = "StdDev")
+hhi.port <- add.objective(hhi.port, type = "weight_concentration",
+                          name = "HHI", conc_aversion = 0.1)
+```
+
+#### CVXR
+
+```{r}
+#| label: hhi-cvxr
+hhi.cvxr <- optimize.portfolio(R, hhi.port, optimize_method = "CVXR")
+hhi.cvxr
+```
+
+#### ROI
+
+```{r}
+#| label: hhi-roi
+hhi.roi <- optimize.portfolio(R, hhi.port, optimize_method = "ROI")
+hhi.roi
+```
+
+#### Comparison
+
+```{r}
+#| label: hhi-compare
+hhi.weights <- round(cbind(
+  CVXR = hhi.cvxr$weights,
+  ROI  = hhi.roi$weights
+), 4)
+knitr::kable(hhi.weights, caption = "Variance + HHI Weights")
+```
+
+
+### Factor Exposure Constraints
+
+Factor exposure constraints bound the portfolio's exposure to specified risk
+factors.  Given a factor loading matrix $B$ (N assets $\times$ K factors),
+the constraint enforces:
+
+$$\text{lower}_k \le B_k^T w \le \text{upper}_k \quad \forall \; k = 1, \ldots, K$$
+
+This is useful for controlling sector tilts, style exposures (value, momentum,
+size), or any linear factor model.  When $B$ is a binary group membership
+matrix, factor exposure constraints are equivalent to group constraints.
+
+Factor exposure constraints are supported as hard linear constraints by
+**CVXR**, **ROI** (including all ROI sub-problems: QP, LP, MILP, turnover,
+transaction cost, and leverage variants), **osqp** (both single-objective and
+Charnes-Cooper maxSR paths), and **Rglpk** (all six sub-cases: maxReturn,
+minES, and maxSTARR, each with and without position limits).
+**Metaheuristic** solvers enforce them via `fn_map()`, which uses a QP
+projection step (`quadprog::solve.QP`) to find the nearest weight vector
+satisfying box, leverage, and factor exposure constraints simultaneously.
+This provides hard constraint enforcement rather than relying solely on
+penalty terms.
+
+#### Setup
+
+We construct a simple style-factor loading matrix for our 6-asset universe.
+Assets are assigned loadings to two factors (e.g., "Equity Beta" and
+"Credit Spread Sensitivity"), and we constrain portfolio exposure to each.
+
+```{r}
+#| label: factor-setup
+# Factor loading matrix: 6 assets x 2 factors
+B <- matrix(c(
+  1.2, 0.8, 0.3, 0.5, 0.1, 0.9,   # Factor 1: Equity Beta
+  0.2, 0.5, 0.9, 0.7, 0.3, 0.4    # Factor 2: Credit Spread
+), ncol = 2, byrow = FALSE)
+rownames(B) <- funds
+colnames(B) <- c("Equity.Beta", "Credit.Spread")
+B
+
+# Exposure bounds
+fe.lower <- c(0.4, 0.3)
+fe.upper <- c(0.8, 0.6)
+
+# Portfolio with factor exposure constraint
+fe.port <- add.constraint(base.port, type = "factor_exposure",
+                          B = B, lower = fe.lower, upper = fe.upper)
+fe.port <- add.objective(fe.port, type = "risk", name = "StdDev")
+```
+
+#### CVXR
+
+```{r}
+#| label: factor-cvxr
+fe.cvxr <- optimize.portfolio(R, fe.port, optimize_method = "CVXR")
+fe.cvxr
+```
+
+Verify the exposure constraints are satisfied:
+
+```{r}
+#| label: factor-cvxr-check
+exposures.cvxr <- as.numeric(t(B) %*% fe.cvxr$weights)
+names(exposures.cvxr) <- colnames(B)
+data.frame(Lower = fe.lower, Exposure = round(exposures.cvxr, 4),
+           Upper = fe.upper)
+```
+
+#### ROI
+
+```{r}
+#| label: factor-roi
+fe.roi <- optimize.portfolio(R, fe.port, optimize_method = "ROI")
+fe.roi
+```
+
+```{r}
+#| label: factor-roi-check
+exposures.roi <- as.numeric(t(B) %*% fe.roi$weights)
+names(exposures.roi) <- colnames(B)
+data.frame(Lower = fe.lower, Exposure = round(exposures.roi, 4),
+           Upper = fe.upper)
+```
+
+#### osqp
+
+```{r}
+#| label: factor-osqp
+fe.osqp <- optimize.portfolio(R, fe.port, optimize_method = "osqp")
+fe.osqp
+```
+
+```{r}
+#| label: factor-osqp-check
+exposures.osqp <- as.numeric(t(B) %*% fe.osqp$weights)
+names(exposures.osqp) <- colnames(B)
+data.frame(Lower = fe.lower, Exposure = round(exposures.osqp, 4),
+           Upper = fe.upper)
+```
+
+#### Rglpk (maxReturn)
+
+Rglpk is a linear solver, so we demonstrate it with a return-maximization
+objective subject to factor exposure bounds:
+
+```{r}
+#| label: factor-rglpk
+fe.rglpk.port <- add.constraint(base.port, type = "factor_exposure",
+                                B = B, lower = fe.lower, upper = fe.upper)
+fe.rglpk.port <- add.objective(fe.rglpk.port, type = "return", name = "mean")
+
+fe.rglpk <- optimize.portfolio(R, fe.rglpk.port, optimize_method = "Rglpk")
+fe.rglpk
+```
+
+```{r}
+#| label: factor-rglpk-check
+exposures.rglpk <- as.numeric(t(B) %*% fe.rglpk$weights)
+names(exposures.rglpk) <- colnames(B)
+data.frame(Lower = fe.lower, Exposure = round(exposures.rglpk, 4),
+           Upper = fe.upper)
+```
+
+#### DEoptim
+
+DEoptim and other metaheuristic solvers enforce factor exposure constraints
+via `fn_map()`, which applies a QP projection step (using
+`quadprog::solve.QP`) after its standard perturbation loop.  This finds
+the nearest weight vector (in L2 norm) satisfying box, leverage, and
+factor exposure constraints simultaneously.
+
+```{r}
+#| label: factor-deoptim
+fe.port.meta <- base.port
+fe.port.meta$constraints[[1]]$min_sum <- 0.99
+fe.port.meta$constraints[[1]]$max_sum <- 1.01
+fe.port.meta <- add.constraint(fe.port.meta, type = "factor_exposure",
+                               B = B, lower = fe.lower, upper = fe.upper)
+fe.port.meta <- add.objective(fe.port.meta, type = "risk", name = "StdDev")
+
+set.seed(42)
+fe.de <- optimize.portfolio(R, fe.port.meta,
+                            optimize_method = "DEoptim",
+                            search_size = 5000, trace = TRUE)
+fe.de
+```
+
+```{r}
+#| label: factor-deoptim-check
+exposures.de <- as.numeric(t(B) %*% fe.de$weights)
+names(exposures.de) <- colnames(B)
+data.frame(Lower = fe.lower, Exposure = round(exposures.de, 4),
+           Upper = fe.upper)
+```
+
+#### GenSA
+
+```{r}
+#| label: factor-gensa
+set.seed(42)
+fe.gensa <- optimize.portfolio(R, fe.port.meta,
+                               optimize_method = "GenSA",
+                               search_size = 5000, trace = TRUE)
+fe.gensa
+```
+
+```{r}
+#| label: factor-gensa-check
+exposures.gensa <- as.numeric(t(B) %*% fe.gensa$weights)
+names(exposures.gensa) <- colnames(B)
+data.frame(Lower = fe.lower, Exposure = round(exposures.gensa, 4),
+           Upper = fe.upper)
+```
+
+#### pso
+
+```{r}
+#| label: factor-pso
+set.seed(42)
+fe.pso <- optimize.portfolio(R, fe.port.meta,
+                             optimize_method = "pso",
+                             search_size = 5000, trace = TRUE)
+fe.pso
+```
+
+```{r}
+#| label: factor-pso-check
+exposures.pso <- as.numeric(t(B) %*% fe.pso$weights)
+names(exposures.pso) <- colnames(B)
+data.frame(Lower = fe.lower, Exposure = round(exposures.pso, 4),
+           Upper = fe.upper)
+```
+
+#### Comparison
+
+```{r}
+#| label: factor-compare
+fe.weights <- round(cbind(
+  CVXR    = fe.cvxr$weights,
+  ROI     = fe.roi$weights,
+  osqp    = fe.osqp$weights,
+  DEoptim = fe.de$weights,
+  GenSA   = fe.gensa$weights,
+  pso     = fe.pso$weights
+), 4)
+knitr::kable(fe.weights, caption = "Factor Exposure Constrained Weights")
+```
+
+#### Factor Exposure with Different Objectives
+
+Factor exposure constraints compose with any objective supported by the
+solver.  For example, maximum return subject to factor exposure bounds:
+
+```{r}
+#| label: factor-maxret
+fe.maxret.port <- add.constraint(base.port, type = "factor_exposure",
+                                 B = B, lower = fe.lower, upper = fe.upper)
+fe.maxret.port <- add.objective(fe.maxret.port, type = "return", name = "mean")
+
+fe.maxret.cvxr <- optimize.portfolio(R, fe.maxret.port,
+                                     optimize_method = "CVXR")
+fe.maxret.roi <- optimize.portfolio(R, fe.maxret.port,
+                                    optimize_method = "ROI")
+fe.maxret.rglpk <- optimize.portfolio(R, fe.maxret.port,
+                                      optimize_method = "Rglpk")
+knitr::kable(round(cbind(CVXR  = fe.maxret.cvxr$weights,
+                         ROI   = fe.maxret.roi$weights,
+                         Rglpk = fe.maxret.rglpk$weights), 4),
+             caption = "Max Return with Factor Exposure Constraints")
+```
+
+And minimum ES subject to factor exposure bounds:
+
+```{r}
+#| label: factor-mines
+fe.mines.port <- add.constraint(base.port, type = "factor_exposure",
+                                B = B, lower = fe.lower, upper = fe.upper)
+fe.mines.port <- add.objective(fe.mines.port, type = "risk", name = "ES",
+                               arguments = list(p = 0.95))
+
+fe.mines.cvxr <- optimize.portfolio(R, fe.mines.port,
+                                    optimize_method = "CVXR")
+fe.mines.roi <- optimize.portfolio(R, fe.mines.port,
+                                   optimize_method = "ROI")
+fe.mines.rglpk <- optimize.portfolio(R, fe.mines.port,
+                                     optimize_method = "Rglpk")
+knitr::kable(round(cbind(CVXR  = fe.mines.cvxr$weights,
+                         ROI   = fe.mines.roi$weights,
+                         Rglpk = fe.mines.rglpk$weights), 4),
+             caption = "Min ES with Factor Exposure Constraints")
+```
+
+And minimum variance subject to factor exposure bounds (osqp vs CVXR):
+
+```{r}
+#| label: factor-minvar
+fe.minvar.port <- add.constraint(base.port, type = "factor_exposure",
+                                 B = B, lower = fe.lower, upper = fe.upper)
+fe.minvar.port <- add.objective(fe.minvar.port, type = "risk", name = "StdDev")
+
+fe.minvar.osqp <- optimize.portfolio(R, fe.minvar.port,
+                                     optimize_method = "osqp")
+fe.minvar.cvxr <- optimize.portfolio(R, fe.minvar.port,
+                                     optimize_method = "CVXR")
+knitr::kable(round(cbind(osqp = fe.minvar.osqp$weights,
+                         CVXR = fe.minvar.cvxr$weights), 4),
+             caption = "Min Variance with Factor Exposure Constraints")
+```
+
+### Factor Models for Moment Estimation
+
+PortfolioAnalytics also supports statistical factor models for *moment
+estimation* via `statistical.factor.model()`.  This is conceptually distinct
+from factor exposure *constraints*: factor models estimate the covariance
+(and higher co-moment) matrices from a small number of principal components,
+which can improve estimation stability for large asset universes.
+
+The `momentFUN` argument to `optimize.portfolio()` controls how moments are
+estimated.  The built-in `set.portfolio.moments()` supports a `"boudt"`
+method that fits a PCA-based factor model:
+
+```{r}
+#| label: factor-moments-setup
+# Use factor-model moments for min variance optimization
+fm.port <- add.objective(base.port, type = "risk", name = "StdDev")
+```
+
+```{r}
+#| label: factor-moments-roi
+fm.roi <- optimize.portfolio(R, fm.port, optimize_method = "ROI",
+                             momentFUN = "set.portfolio.moments",
+                             method = "boudt", k = 3)
+fm.roi
+```
+
+```{r}
+#| label: factor-moments-compare
+knitr::kable(round(cbind(
+  Sample = minvar.roi$weights,
+  FactorModel = fm.roi$weights
+), 4), caption = "Sample vs Factor Model Moment Estimation")
+```
+
+The factor model approach can be combined with any solver and any objective
+type.  It is especially valuable for portfolios with many assets (50+) where
+the sample covariance matrix may be poorly conditioned.
+
 
 ## Performance Benchmarks
 
-<!-- TODO: methodology, timing tables, convergence quality, visuals -->
+We benchmark each objective/solver combination using `system.time()`,
+averaging over multiple runs for the stochastic solvers.  Convex solvers
+typically run in under a second; metaheuristic solvers may take
+considerably longer depending on `search_size` and convergence criteria.
+
+Each subsection shows the benchmark code, a timing table, and a results
+comparison table showing weights and objective values across solvers.
+
+```{r}
+#| label: benchmark-setup
+#| include: false
+n_runs <- 3
+```
+
+### Minimum Variance
+
+```{r}
+#| label: bench-minvar
+#| results: hide
+bench.minvar.cvxr <- system.time(
+  res.minvar.cvxr <- optimize.portfolio(R, minvar.port,
+                                        optimize_method = "CVXR"))
+bench.minvar.roi <- system.time(
+  res.minvar.roi <- optimize.portfolio(R, minvar.port,
+                                       optimize_method = "ROI"))
+bench.minvar.osqp <- system.time(
+  res.minvar.osqp <- optimize.portfolio(R, minvar.port,
+                                        optimize_method = "osqp"))
+bench.minvar.de.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, minvar.port.meta,
+                              optimize_method = "DEoptim",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"], obj = res$opt_values[[1]])
+})
+bench.minvar.de.elapsed <- median(bench.minvar.de.times["elapsed.elapsed", ])
+# use the result from the last DEoptim run
+res.minvar.de <- optimize.portfolio(R, minvar.port.meta,
+                                    optimize_method = "DEoptim",
+                                    search_size = 5000)
+
+bench.minvar.gensa.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, minvar.port.meta,
+                              optimize_method = "GenSA",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.minvar.gensa.elapsed <- median(bench.minvar.gensa.times)
+res.minvar.gensa <- optimize.portfolio(R, minvar.port.meta,
+                                       optimize_method = "GenSA",
+                                       search_size = 5000)
+
+bench.minvar.pso.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, minvar.port.meta,
+                              optimize_method = "pso",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.minvar.pso.elapsed <- median(bench.minvar.pso.times)
+res.minvar.pso <- optimize.portfolio(R, minvar.port.meta,
+                                     optimize_method = "pso",
+                                     search_size = 5000)
+
+bench.minvar <- data.frame(
+  Solver = c("CVXR", "ROI", "osqp", "DEoptim", "GenSA", "pso"),
+  Time_sec = c(bench.minvar.cvxr["elapsed"],
+               bench.minvar.roi["elapsed"],
+               bench.minvar.osqp["elapsed"],
+               bench.minvar.de.elapsed,
+               bench.minvar.gensa.elapsed,
+               bench.minvar.pso.elapsed)
+)
+```
+
+```{r}
+#| label: bench-minvar-time
+#| echo: false
+knitr::kable(bench.minvar, digits = 3, col.names = c("Solver", "Time (sec)"))
+```
+
+```{r}
+#| label: bench-minvar-results
+#| echo: false
+bench.minvar.wts <- round(cbind(
+  CVXR    = res.minvar.cvxr$weights,
+  ROI     = res.minvar.roi$weights,
+  osqp    = res.minvar.osqp$weights,
+  DEoptim = res.minvar.de$weights,
+  GenSA   = res.minvar.gensa$weights,
+  pso     = res.minvar.pso$weights
+), 4)
+
+bench.minvar.obj <- data.frame(
+  Solver = c("CVXR", "ROI", "osqp", "DEoptim", "GenSA", "pso"),
+  StdDev = round(c(
+    sqrt(as.numeric(t(res.minvar.cvxr$weights) %*% cov(R) %*% res.minvar.cvxr$weights)),
+    sqrt(as.numeric(t(res.minvar.roi$weights) %*% cov(R) %*% res.minvar.roi$weights)),
+    sqrt(as.numeric(t(res.minvar.osqp$weights) %*% cov(R) %*% res.minvar.osqp$weights)),
+    sqrt(as.numeric(t(res.minvar.de$weights) %*% cov(R) %*% res.minvar.de$weights)),
+    sqrt(as.numeric(t(res.minvar.gensa$weights) %*% cov(R) %*% res.minvar.gensa$weights)),
+    sqrt(as.numeric(t(res.minvar.pso$weights) %*% cov(R) %*% res.minvar.pso$weights))
+  ), 6)
+)
+knitr::kable(bench.minvar.wts, caption = "Weights")
+knitr::kable(bench.minvar.obj, digits = 6,
+             col.names = c("Solver", "Portfolio StdDev"),
+             caption = "Objective Values")
+```
+
+### Minimum ES
+
+```{r}
+#| label: bench-mines
+#| results: hide
+bench.mines.cvxr <- system.time(
+  res.mines.cvxr <- optimize.portfolio(R, mines.port,
+                                       optimize_method = "CVXR"))
+bench.mines.roi <- system.time(
+  res.mines.roi <- optimize.portfolio(R, mines.port,
+                                      optimize_method = "ROI"))
+bench.mines.rglpk <- system.time(
+  res.mines.rglpk <- optimize.portfolio(R, mines.port,
+                                        optimize_method = "Rglpk"))
+bench.mines.de.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, mines.port.meta,
+                              optimize_method = "DEoptim",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.mines.de.elapsed <- median(bench.mines.de.times)
+res.mines.de <- optimize.portfolio(R, mines.port.meta,
+                                   optimize_method = "DEoptim",
+                                   search_size = 5000)
+
+bench.mines.gensa.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, mines.port.meta,
+                              optimize_method = "GenSA",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.mines.gensa.elapsed <- median(bench.mines.gensa.times)
+res.mines.gensa <- optimize.portfolio(R, mines.port.meta,
+                                      optimize_method = "GenSA",
+                                      search_size = 5000)
+
+bench.mines.pso.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, mines.port.meta,
+                              optimize_method = "pso",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.mines.pso.elapsed <- median(bench.mines.pso.times)
+res.mines.pso <- optimize.portfolio(R, mines.port.meta,
+                                    optimize_method = "pso",
+                                    search_size = 5000)
+
+bench.mines <- data.frame(
+  Solver = c("CVXR", "ROI", "Rglpk", "DEoptim", "GenSA", "pso"),
+  Time_sec = c(bench.mines.cvxr["elapsed"],
+               bench.mines.roi["elapsed"],
+               bench.mines.rglpk["elapsed"],
+               bench.mines.de.elapsed,
+               bench.mines.gensa.elapsed,
+               bench.mines.pso.elapsed)
+)
+```
+
+```{r}
+#| label: bench-mines-time
+#| echo: false
+knitr::kable(bench.mines, digits = 3, col.names = c("Solver", "Time (sec)"))
+```
+
+```{r}
+#| label: bench-mines-results
+#| echo: false
+bench.mines.wts <- round(cbind(
+  CVXR    = res.mines.cvxr$weights,
+  ROI     = res.mines.roi$weights,
+  Rglpk   = res.mines.rglpk$weights,
+  DEoptim = res.mines.de$weights,
+  GenSA   = res.mines.gensa$weights,
+  pso     = res.mines.pso$weights
+), 4)
+
+bench.mines.obj <- data.frame(
+  Solver = c("CVXR", "ROI", "Rglpk", "DEoptim", "GenSA", "pso"),
+  ES_95 = round(c(
+    ES(Return.portfolio(R, weights = res.mines.cvxr$weights),
+       p = 0.95, method = "historical"),
+    ES(Return.portfolio(R, weights = res.mines.roi$weights),
+       p = 0.95, method = "historical"),
+    ES(Return.portfolio(R, weights = res.mines.rglpk$weights),
+       p = 0.95, method = "historical"),
+    ES(Return.portfolio(R, weights = res.mines.de$weights),
+       p = 0.95, method = "historical"),
+    ES(Return.portfolio(R, weights = res.mines.gensa$weights),
+       p = 0.95, method = "historical"),
+    ES(Return.portfolio(R, weights = res.mines.pso$weights),
+       p = 0.95, method = "historical")
+  ), 6)
+)
+knitr::kable(bench.mines.wts, caption = "Weights")
+knitr::kable(bench.mines.obj, digits = 6,
+             col.names = c("Solver", "ES (p=0.95)"),
+             caption = "Objective Values")
+```
+
+### Maximum Sharpe Ratio
+
+```{r}
+#| label: bench-maxsr
+#| results: hide
+bench.maxsr.cvxr <- system.time(
+  res.maxsr.cvxr <- optimize.portfolio(R, maxsr.port,
+                                       optimize_method = "CVXR",
+                                       maxSR = TRUE))
+bench.maxsr.roi <- system.time(
+  res.maxsr.roi <- optimize.portfolio(R, maxsr.port,
+                                      optimize_method = "ROI",
+                                      maxSR = TRUE))
+bench.maxsr.osqp <- system.time(
+  res.maxsr.osqp <- optimize.portfolio(R, maxsr.port,
+                                       optimize_method = "osqp"))
+bench.maxsr.de.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, maxsr.port.meta,
+                              optimize_method = "DEoptim",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.maxsr.de.elapsed <- median(bench.maxsr.de.times)
+res.maxsr.de <- optimize.portfolio(R, maxsr.port.meta,
+                                   optimize_method = "DEoptim",
+                                   search_size = 5000)
+
+bench.maxsr.gensa.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, maxsr.port.meta,
+                              optimize_method = "GenSA",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.maxsr.gensa.elapsed <- median(bench.maxsr.gensa.times)
+res.maxsr.gensa <- optimize.portfolio(R, maxsr.port.meta,
+                                      optimize_method = "GenSA",
+                                      search_size = 5000)
+
+bench.maxsr.pso.times <- replicate(n_runs, {
+  t <- system.time(
+    res <- optimize.portfolio(R, maxsr.port.meta,
+                              optimize_method = "pso",
+                              search_size = 5000))
+  c(elapsed = t["elapsed"])
+})
+bench.maxsr.pso.elapsed <- median(bench.maxsr.pso.times)
+res.maxsr.pso <- optimize.portfolio(R, maxsr.port.meta,
+                                    optimize_method = "pso",
+                                    search_size = 5000)
+
+bench.maxsr <- data.frame(
+  Solver = c("CVXR", "ROI", "osqp", "DEoptim", "GenSA", "pso"),
+  Time_sec = c(bench.maxsr.cvxr["elapsed"],
+               bench.maxsr.roi["elapsed"],
+               bench.maxsr.osqp["elapsed"],
+               bench.maxsr.de.elapsed,
+               bench.maxsr.gensa.elapsed,
+               bench.maxsr.pso.elapsed)
+)
+```
+
+```{r}
+#| label: bench-maxsr-time
+#| echo: false
+knitr::kable(bench.maxsr, digits = 3, col.names = c("Solver", "Time (sec)"))
+```
+
+```{r}
+#| label: bench-maxsr-results
+#| echo: false
+# Compute Sharpe ratio for each solver's result using PerformanceAnalytics
+sr_fun <- function(w) {
+  port_ret <- Return.portfolio(R, weights = w)
+  as.numeric(SharpeRatio(port_ret, FUN = "StdDev"))
+}
+
+bench.maxsr.wts <- round(cbind(
+  CVXR    = res.maxsr.cvxr$weights,
+  ROI     = res.maxsr.roi$weights,
+  osqp    = res.maxsr.osqp$weights,
+  DEoptim = res.maxsr.de$weights,
+  GenSA   = res.maxsr.gensa$weights,
+  pso     = res.maxsr.pso$weights
+), 4)
+
+bench.maxsr.obj <- data.frame(
+  Solver = c("CVXR", "ROI", "osqp", "DEoptim", "GenSA", "pso"),
+  Sharpe = round(c(
+    sr_fun(res.maxsr.cvxr$weights),
+    sr_fun(res.maxsr.roi$weights),
+    sr_fun(res.maxsr.osqp$weights),
+    sr_fun(res.maxsr.de$weights),
+    sr_fun(res.maxsr.gensa$weights),
+    sr_fun(res.maxsr.pso$weights)
+  ), 6)
+)
+knitr::kable(bench.maxsr.wts, caption = "Weights")
+knitr::kable(bench.maxsr.obj, digits = 6,
+             col.names = c("Solver", "Sharpe Ratio"),
+             caption = "Objective Values")
+```
+
 
 ## Solver Selection Guide
 
-<!-- TODO: decision tree, scalability notes -->
+### Decision Framework
+
+The choice of solver depends on the problem structure:
+
+1. **Is the objective convex?** (variance, ES, CSM, return, ratios thereof)
+   - Yes: use a convex solver for exact, fast results
+   - No: use a metaheuristic solver
+
+2. **Which convex solver?**
+   - **CVXR** is the most versatile, supporting LP, QP, and SOCP problems
+     with the widest objective coverage (including CSM and EQS)
+   - **ROI** is well-tested for QP (min variance, quadratic utility) and LP
+     (max return, min ES) problems, and uniquely supports turnover,
+     transaction cost, and leverage exposure constraints
+   - **osqp** is fast for pure QP problems but limited in scope
+   - **Rglpk** is fast for LP problems and supports position limits via MILP
+
+3. **Do you need risk budgets, custom objectives, or non-convex constraints?**
+   - Use **DEoptim** (best convergence for most problems), **GenSA** (good
+     for high-dimensional problems), **pso**, or **random** (simplest, good
+     for prototyping)
+
+4. **Do you need position limits (cardinality constraints)?**
+   - **ROI** and **Rglpk** support MILP formulations with binary variables
+   - Metaheuristic solvers handle position limits via penalty terms
+
+### Scalability
+
+| Solver | 10 assets | 50 assets | 200+ assets |
+|--------|:---------:|:---------:|:-----------:|
+| CVXR | < 1s | < 2s | seconds |
+| ROI | < 0.1s | < 0.5s | < 2s |
+| osqp | < 0.1s | < 0.5s | < 1s |
+| Rglpk | < 0.1s | < 0.5s | < 2s |
+| DEoptim | seconds | minutes | minutes--hours |
+| random | seconds | seconds | minutes |
+
 
 ## Gaps & Normalization Notes
 
-<!-- TODO: identified gaps, inconsistencies, planned improvements -->
+The following inconsistencies and gaps were identified during the preparation
+of this vignette:
+
+### Ratio Flag Defaults
+
+The `maxSR` flag defaults to `FALSE`, requiring users to explicitly pass
+`maxSR = TRUE` when both mean and variance objectives are present.
+In contrast, `maxSTARR`, `CSMratio`, and `EQSratio` all default to `TRUE`
+when their respective objective pairs are present.  This asymmetry is a
+known behavioral difference that users should be aware of.
+
+### EQS Ratio Constraints
+
+The `EQSratio` flag is not included in the `weight_scale` computation for
+CVXR constraint scaling (line 2997 of `optimize.portfolio.R`), and EQS ratio
+solutions are not normalized post-solve.  This means box, group, and weight
+sum constraints may not be properly applied for EQS ratio problems.
+
+### CSM in Metaheuristic Solvers
+
+The `constrained_objective()` function has an empty code block for the CSM
+objective (`R/constrained_objective.R`, line 606), meaning CSM is not
+directly available as a risk measure in metaheuristic solvers.  Users who
+need CSM with DEoptim/GenSA/pso must supply a custom objective function.
+
+### Constraint Coverage Gaps
+
+| Constraint | Gap |
+|-----------|-----|
+| Turnover | CVXR supports turnover constraints but the implementation modifies the objective (penalty on distance from initial weights) rather than adding a strict constraint; ROI supports strict turnover via `gmv_opt_toc` for QP problems only |
+| Transaction cost | Only ROI supports proportional transaction costs (`gmv_opt_ptc`) |
+| Factor exposure | CVXR, ROI, osqp, and Rglpk support factor exposure as hard linear constraints; metaheuristic solvers enforce via QP projection in `fn_map()` |
+| Position limit | Only ROI (MILP) and Rglpk (MILP) support exact position limits |
+| Diversification | Only metaheuristic solvers support the diversification constraint |
+
+### Factor Exposure Gaps
+
+- The `rp_transform()` function used inside `fn_map()` for iterative
+  perturbation does not directly handle factor exposure constraints.
+  Instead, `fn_map()` applies a post-perturbation QP projection step
+  that enforces factor exposure bounds.  Random portfolio generation
+  (`random_portfolios()`) does not use this projection, so randomly
+  generated starting portfolios may not satisfy factor exposure bounds.
+
 
 ## Appendix
 
 ### Constraint Type Reference
 
-<!-- TODO: full constraint reference table -->
+| Type string(s) | Constraint class | Description |
+|----------------|-----------------|-------------|
+| `"box"` | `box_constraint` | Per-asset upper and lower weight bounds |
+| `"long_only"` | `box_constraint` | Shortcut: min=0, max=1 for all assets |
+| `"weight"`, `"leverage"`, `"weight_sum"` | `weight_sum_constraint` | Bounds on sum of weights (min_sum, max_sum) |
+| `"full_investment"` | `weight_sum_constraint` | Shortcut: min_sum=1, max_sum=1 |
+| `"dollar_neutral"`, `"active"` | `weight_sum_constraint` | Shortcut: min_sum=0, max_sum=0 |
+| `"group"` | `group_constraint` | Group-level weight sum bounds |
+| `"turnover"` | `turnover_constraint` | Maximum total turnover from initial weights |
+| `"diversification"` | `diversification_constraint` | Diversification target |
+| `"position_limit"` | `position_limit_constraint` | Max non-zero positions (max_pos, max_pos_long, max_pos_short) |
+| `"return"` | `return_constraint` | Minimum target return |
+| `"factor_exposure"` | `factor_exposure_constraint` | Factor exposure bounds via matrix B |
+| `"transaction"`, `"transaction_cost"` | `transaction_cost_constraint` | Proportional transaction costs |
+| `"leverage_exposure"` | `leverage_exposure_constraint` | Limit on sum of absolute weights |
 
 ### Session Info
 
 ```{r}
 #| label: session-info
-#| eval: false
 sessionInfo()
 ```
