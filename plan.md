@@ -1,15 +1,5 @@
 # PortfolioAnalytics Plan
 
-> **History note:** All completed bug fixes, issue triage, and earlier coverage
-> work are recorded in commit `6e5ef96` and earlier. Coverage test files from
-> the prior session are in commits `bc28c87`–`a127fa0`. R CMD check fixes are
-> in commit `bb2f17e`. Bug fixes (BUG-1 through BUG-8) are in commit `c1daf38`.
-> Session 2 coverage work (charts, stat.factor.model, fn_map, EF, constrained_objective,
-> optFUN, moment.functions, utils) is in commits `b9db2a7`–`5d02fae`.
-> Sessions 3–6 coverage and bug-fix work is in commits `6b9100f`–`e237b23`.
-
----
-
 ## Conventions and Rules
 
 - Be concise and efficient when communicating. Think all you like, but don't think out loud. Silence is golden. Communicate only when you need input from the user or complete a task
@@ -21,7 +11,7 @@
 - Tests run against the **installed** package — run `R CMD INSTALL . --no-test-load` after any source change
 - Run tests with `NOT_CRAN=true Rscript -e "testthat::test_file(...)"` — never `test_dir()` (crashes with parallel runner)
 - Run coverage in only one agent at a time to prevent parallel runner from corrupting covr tracing; do not run `tests/run-all.R` in parallel subagents
-- `DESCRIPTION` has `Config/testthat/parallel: false` (changed from `true` to prevent covr hangs)
+- `DESCRIPTION` has `Config/testthat/parallel: true` (`run-all.R` sets environment variable to prevent covr hangs)
 - Unexported package functions must be accessed in tests via `PortfolioAnalytics:::`
 - Do not end bullets with a period
 - Never run `git push` — only `git add` and `git commit`
@@ -90,22 +80,12 @@
 
 ---
 
-## Feature Requests (deferred — non-trivial design needed)
-
-- **#43** — Parallelization level control for rebalancing
-- **#45** — Return solver failure info from rebalancing
-- **#42** — Time-varying factor exposure (workaround documented in issue)
-
----
-
 ## Coverage Status
 
 | Checkpoint | R-only coverage |
-|---|---|
-| Baseline (`covr/coverage-2026-04-11.rds`) | 85.24% |
-| After session 2 (`covr/coverage-2026-04-11-session2.rds`) | 86.42% |
-| After sessions 3–4 | 87.01% |
-| After sessions 5–6 (`covr/coverage-2026-04-11.rds` — this is the most recent measurement) | **92.82%** |
+|------------|----------------:|
+| Before | 86.5% |
+| After | 92.9% |
 
 Both `R CMD check --as-cran` and `NOT_CRAN=true R CMD check` pass — tests: OK.
 Pre-existing warnings (`.gcda` files, missing `inst/doc`, version, compile flags) are unrelated to our work.
@@ -138,31 +118,6 @@ Pre-existing warnings (`.gcda` files, missing `inst/doc`, version, compile flags
 | `R/utils.R` | 94.44 | |
 | `R/objective.R` | 94.67 | |
 | *(≥95% files not shown)* | | |
-
-### Test files added (all committed)
-
-| File | Session | Tests |
-|------|---------|------:|
-| `test-charts-groups-extra.R` | 2 | 23 |
-| `test-chart-weights-extra.R` | 2 | 17 |
-| `test-stat-factor-model-extra.R` | 2 | 31 |
-| `test-fn-map.R` | 2 | extended +233 lines |
-| `test-efficient-frontier.R` | 2 | extended +262 lines |
-| `test-constrained-objective-branches.R` | 2 | 49 total |
-| `test-optFUN-gaps.R` | 2 | 31 total |
-| `test-moment-utils-gaps.R` | 2 | 43 |
-| `test-optimize-portfolio-gaps.R` | 3 | 49 |
-| `test-optimize-portfolio-v1-gaps.R` | 4 | 16 |
-| `test-optimize-portfolio-rglpk-max-pos.R` | 4 | 8 |
-| `test-optimize-portfolio-osqp-gaps.R` | 4 | 12 |
-| `test-optimize-portfolio-mco-gaps.R` | 4 | 14 |
-| `test-optFUN-gaps2.R` | 4 | 18 |
-| `test-constrained-objective-gaps.R` | 4 | 22 |
-| `test-constrained-objective-gaps2.R` | 4 | 19 |
-| `test-optimize-roi-extended.R` | 4 | 89 |
-| `helper-portfolioanalytics.R` | 4 | shared fixtures |
-| `test-optFUN-gaps3.R` | 5/6 | 27 |
-| `test-constrained-objective-gaps3.R` | 5/6 | 16 |
 
 ---
 
