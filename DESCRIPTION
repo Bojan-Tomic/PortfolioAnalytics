@@ -51,11 +51,12 @@ Suggests:
     GSE,
     RobStatTM,
     PCRA,
+    quarto,
     R.rsp,
     RPESE,
     TTR,
     Matrix
-VignetteBuilder: R.rsp
+VignetteBuilder: R.rsp, quarto
 Imports:
     methods,
     GenSA,

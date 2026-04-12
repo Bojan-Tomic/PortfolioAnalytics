@@ -1,6 +1,92 @@
 # PortfolioAnalytics Plan
 
-## Conventions and Rules
+We have completed major test coverage and issue cleanup for `PortfolioAnalytics` 
+with the help of Gemini and Claude. This document summarizes our conventions, 
+structure, and rules for interacting with the repository.
+
+Our immediate plan is to develop a quarto document in the `vignettes/` 
+directory that serves as a comprehensive comparison and reference for 
+the optimization solvers supported by `PortfolioAnalytics`. 
+
+Our goal is to build a document that:
+- briefly describes the optimization landscape and the solvers we support
+- provides a matrix and performance benchmarks for all the "shortcut" objective  
+  specifications (e.g. max return, max Sharpe, min CSM) across all solvers that support 
+  them and manually implemented in global solvers such as DEoptim and pso
+- includes code snippets for how to use each solver with each objective specification
+- benchmarks time to converge for the various methods
+
+much of the documentation on how to use the various solvers is already in place in the vignettes and demo scripts, so we will be able to reuse a lot of that content.  The main work will be in organizing it into a single document, filling in any gaps, and running benchmarks.
+
+While working on this, we should also highlight areas for normalization of support for the shortcut objective specifications across solvers, and identify any gaps in our current support.  We may choose to implement these gaps as part of this work, or we may choose to simply document them and prioritize them for future work.
+
+This document also includes summaries of the bugs we discovered and fixed during coverage 
+work, the current coverage status, and our next steps if we come back 
+to coverage.  For the purposes of the current task, the main point is 
+to make sure nothing we do makes coverage go down. 
+
+## Plan for Optimization Solvers Vignette
+
+### Format & Toolchain
+
+- Quarto `.qmd` targeting HTML output (CRAN displays HTML vignettes natively)
+- VignetteEngine: `quarto::html`; VignetteBuilder: `quarto` added to DESCRIPTION
+- `quarto` added to Suggests in DESCRIPTION
+- PDF output is a secondary target; `.asis` delivery deferred for now
+- File: `vignettes/optimization_solvers.qmd`
+
+### Outline
+
+#### 1. Introduction
+- The optimization landscape in portfolio construction
+- PortfolioAnalytics' solver-agnostic design philosophy
+- Scope of this document
+
+#### 2. Solver Overview
+- **Convex/closed-form solvers** (CVXR first as primary focus, then ROI, osqp, Rglpk)
+- **Metaheuristic solvers** (DEoptim, GenSA, pso, random)
+- **Multi-objective** (mco / NSGA-II)
+- Summary table: solver → problem class → strengths/limitations
+
+#### 3. Objective & Constraint Support Matrix
+- Master matrix: rows = objective specifications, columns = solvers
+  - Objectives: maxret, minvar/minStdDev, minES/minCVaR, minCSM, maxSR,
+    maxSTARR, CSMratio, EQSratio, maxQU, riskbudget, weight_concentration
+  - For each cell: native shortcut, manual via constrained_objective, or unsupported
+- Constraint compatibility notes per solver
+- Constraint types: box, group, weight_sum, turnover, diversification,
+  position_limit, return, factor_exposure, transaction_cost, leverage_exposure
+
+#### 4. Worked Examples
+- Common data setup (edhec dataset)
+- Organized by objective specification, CVXR examples first:
+  - Code snippet for each supporting solver
+  - Comparison of results (weights, objective value)
+  - Solver-specific parameter notes
+- Cross-solver result comparison tables
+
+#### 5. Performance Benchmarks
+- Methodology (microbenchmark or system.time, multiple repetitions)
+- Time-to-converge comparison tables
+- Convergence quality comparison (objective value achieved)
+- Visuals: bar charts or heatmaps
+
+#### 6. Solver Selection Guide
+- Decision tree: "which solver should I use?"
+- When to use closed-form vs metaheuristic
+- Scalability considerations (number of assets)
+
+#### 7. Gaps & Normalization Notes
+- Identified gaps in shortcut specification support across solvers
+- Inconsistencies in interface or behavior
+- Planned improvements
+
+#### Appendix
+- Full constraint type reference
+- Session info
+
+
+## Development Conventions and Rules
 
 - Be concise and efficient when communicating. Think all you like, but don't think out loud. Silence is golden. Communicate only when you need input from the user or complete a task
 - You are authorized to use parallel subagents to accomplish a task

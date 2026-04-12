@@ -1,0 +1,179 @@
+---
+title: "Optimization Solvers in PortfolioAnalytics"
+vignette: >
+  %\VignetteIndexEntry{Optimization Solvers in PortfolioAnalytics}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    df-print: kable
+  pdf:
+    toc: true
+    toc-depth: 3
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(PortfolioAnalytics)
+library(PerformanceAnalytics)
+```
+
+## Introduction
+
+PortfolioAnalytics provides a flexible framework for portfolio optimization
+that separates the *specification* of objectives and constraints from the
+*solver* used to find optimal portfolios. This solver-agnostic design allows
+users to swap optimization backends without rewriting their portfolio
+specification, making it straightforward to compare results across methods.
+
+This vignette provides:
+
+- An overview of all supported optimization solvers
+- A compatibility matrix mapping objective specifications to solvers
+- Worked examples for each objective/solver combination
+- Performance benchmarks comparing time-to-converge and solution quality
+- Guidance on solver selection
+
+## Solver Overview
+
+PortfolioAnalytics supports solvers spanning three categories: convex/closed-form
+solvers that exploit problem structure for exact solutions, metaheuristic solvers
+that use stochastic search for arbitrary objectives, and multi-objective solvers
+for Pareto optimization.
+
+### Convex / Closed-Form Solvers
+
+#### CVXR
+
+CVXR provides the most comprehensive closed-form solver support in
+PortfolioAnalytics. It uses disciplined convex programming (DCP) to
+model and solve LP, QP, and SOCP problems, supporting variance, ES/CVaR,
+CSM, EQS, and HHI objectives natively.
+
+<!-- TODO: CVXR sub-solvers (OSQP, CLARABEL, SCS, ECOS, etc.) -->
+
+#### ROI
+
+The R Optimization Infrastructure (ROI) dispatches to plugin solvers:
+`quadprog` for QP problems (min variance, max quadratic utility) and
+`glpk`/`symphony` for LP/MILP problems (max return, min ES/CVaR).
+
+#### osqp
+
+A standalone QP solver supporting mean and variance/StdDev objectives.
+Fast for pure quadratic problems but limited in objective scope.
+
+#### Rglpk
+
+A standalone LP/MILP solver supporting mean and ES/CVaR objectives.
+
+### Metaheuristic Solvers
+
+These solvers accept *any* R function as an objective, making them suitable
+for non-convex or black-box problems. The trade-off is longer run times and
+no guarantee of global optimality.
+
+- **DEoptim** -- Differential Evolution
+- **GenSA** -- Generalized Simulated Annealing
+- **pso** -- Particle Swarm Optimization
+- **random** -- Random portfolio search (built-in)
+
+### Multi-Objective
+
+- **mco** -- NSGA-II for Pareto-optimal frontiers across multiple objectives
+
+<!-- TODO: solver summary table -->
+
+## Objective & Constraint Support Matrix
+
+<!-- TODO: master compatibility matrix -->
+<!-- Rows: maxret, minvar, minES, minCSM, maxSR, maxSTARR, CSMratio, -->
+<!--        EQSratio, maxQU, riskbudget, weight_concentration            -->
+<!-- Columns: CVXR, ROI, osqp, Rglpk, DEoptim, GenSA, pso, random, mco  -->
+
+## Worked Examples
+
+### Data Setup
+
+```{r}
+#| label: data-setup
+#| eval: false
+data(edhec)
+R <- edhec["2008::2012", 1:6]
+
+funds <- colnames(R)
+port <- portfolio.spec(assets = funds)
+port <- add.constraint(port, type = "full_investment")
+port <- add.constraint(port, type = "long_only")
+```
+
+### Minimum Variance
+
+<!-- TODO: CVXR, ROI, osqp, DEoptim, GenSA, pso, random -->
+
+### Minimum ES / CVaR
+
+<!-- TODO: CVXR, ROI, Rglpk, DEoptim, GenSA, pso, random -->
+
+### Minimum CSM
+
+<!-- TODO: CVXR (native), DEoptim, GenSA, pso, random (manual) -->
+
+### Maximum Return
+
+<!-- TODO: CVXR, ROI, Rglpk, DEoptim, GenSA, pso, random -->
+
+### Maximum Sharpe Ratio
+
+<!-- TODO: CVXR, ROI, DEoptim, GenSA, pso, random -->
+
+### Maximum STARR
+
+<!-- TODO: CVXR, ROI, DEoptim, GenSA, pso, random -->
+
+### Maximum Quadratic Utility
+
+<!-- TODO: ROI, CVXR, DEoptim, GenSA, pso, random -->
+
+### Risk Budgets
+
+<!-- TODO: DEoptim, GenSA, pso, random -->
+
+### Weight Concentration (HHI)
+
+<!-- TODO: CVXR, ROI, DEoptim, GenSA, pso, random -->
+
+## Performance Benchmarks
+
+<!-- TODO: methodology, timing tables, convergence quality, visuals -->
+
+## Solver Selection Guide
+
+<!-- TODO: decision tree, scalability notes -->
+
+## Gaps & Normalization Notes
+
+<!-- TODO: identified gaps, inconsistencies, planned improvements -->
+
+## Appendix
+
+### Constraint Type Reference
+
+<!-- TODO: full constraint reference table -->
+
+### Session Info
+
+```{r}
+#| label: session-info
+#| eval: false
+sessionInfo()
+```
