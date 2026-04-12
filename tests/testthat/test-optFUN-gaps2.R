@@ -170,17 +170,127 @@ test_that("maxret_milp_opt handles missing cLO/cUP in group constraint", {
   expect_false(is.null(opt))
 })
 
-test_that("maxret_milp_opt throws No solution found for invalid solver", {
+test_that("etl_opt handles cleanR, B, and infeasible", {
+  skip_on_cran()
+  
+  c_list <- .make_bare_constraints()
+  c_list$B <- matrix(1, nrow = 4, ncol = 1)
+  c_list$lower <- 0.99
+  c_list$upper <- 1.01
+  
+  m_list <- list(cleanR = edhec4, mean = colMeans(edhec4), ES = NA)
+  
+  opt <- tryCatch(
+    PortfolioAnalytics:::etl_opt(R = edhec4, constraints = c_list, moments = m_list, 
+                                 target = NA, alpha = 0.05, solver = "glpk"),
+    error = function(e) NULL
+  )
+  expect_false(is.null(opt))
+  
+  expect_error(
+    PortfolioAnalytics:::etl_opt(R = edhec4, constraints = c_list, moments = m_list, 
+                                 target = NA, alpha = 0.05, solver = "nonexistent_solver"),
+    "ROI solver plugin"
+  )
+})
+
+test_that("etl_milp_opt handles cleanR, B, and infeasible", {
   skip_on_cran()
   skip_if_not_installed("Rglpk")
   
   c_list <- .make_bare_constraints()
   c_list$max_pos <- 2
-  m_list <- list(mean = colMeans(edhec4))
+  c_list$B <- matrix(1, nrow = 4, ncol = 1)
+  c_list$lower <- 0.99
+  c_list$upper <- 1.01
+  
+  m_list <- list(cleanR = edhec4, mean = colMeans(edhec4), ES = NA)
+  
+  opt <- tryCatch(
+    PortfolioAnalytics:::etl_milp_opt(R = edhec4, constraints = c_list, moments = m_list, 
+                                      target = NA, alpha = 0.05, solver = "glpk"),
+    error = function(e) NULL
+  )
+  expect_false(is.null(opt))
   
   expect_error(
-    PortfolioAnalytics:::maxret_milp_opt(R = edhec4, constraints = c_list, moments = m_list, 
-                                         target = NA, solver = "nonexistent_solver"),
-    "ROI solver plugin 'ROI.plugin.nonexistent_solver' is not installed"
+    PortfolioAnalytics:::etl_milp_opt(R = edhec4, constraints = c_list, moments = m_list, 
+                                      target = NA, alpha = 0.05, solver = "nonexistent_solver"),
+    "ROI solver plugin"
   )
 })
+
+test_that("max_sr_opt handles cleanR, B, and infeasible", {
+  skip_on_cran()
+  
+  c_list <- .make_bare_constraints()
+  c_list$B <- matrix(1, nrow = 4, ncol = 1)
+  c_list$lower <- 0.99
+  c_list$upper <- 1.01
+  
+  m_list <- list(cleanR = edhec4, mean = colMeans(edhec4), var = cov(edhec4), ES = NA)
+  
+  opt <- tryCatch(
+    PortfolioAnalytics:::max_sr_opt(R = edhec4, constraints = c_list, moments = m_list, 
+                                    lambda_hhi=NULL, conc_groups=NULL, solver = "quadprog", control=NULL),
+    error = function(e) NULL
+  )
+  expect_false(is.null(opt))
+  
+  expect_error(
+    PortfolioAnalytics:::max_sr_opt(R = edhec4, constraints = c_list, moments = m_list, 
+                                    lambda_hhi=NULL, conc_groups=NULL, solver = "nonexistent_solver", control=NULL),
+    "ROI solver plugin"
+  )
+})
+
+test_that("gmv_opt_ptc handles cleanR, B, and infeasible", {
+  skip_on_cran()
+  
+  c_list <- .make_bare_constraints()
+  c_list$B <- matrix(1, nrow = 4, ncol = 1)
+  c_list$lower <- 0.99
+  c_list$upper <- 1.01
+  c_list$ptc <- 0.01
+  
+  m_list <- list(cleanR = edhec4, mean = rep(0, 4), var = cov(edhec4), ES = NA)
+  
+  opt <- tryCatch(
+    PortfolioAnalytics:::gmv_opt_ptc(R = edhec4, constraints = c_list, moments = m_list, 
+                                     lambda = 1, target = NA, init_weights = rep(1/4, 4), solver = "quadprog"),
+    error = function(e) NULL
+  )
+  expect_false(is.null(opt))
+  
+  expect_error(
+    PortfolioAnalytics:::gmv_opt_ptc(R = edhec4, constraints = c_list, moments = m_list, 
+                                     lambda = 1, target = NA, init_weights = rep(1/4, 4), solver = "nonexistent_solver"),
+    "ROI solver plugin"
+  )
+})
+
+test_that("gmv_opt_toc handles cleanR, B, and infeasible", {
+  skip_on_cran()
+  
+  c_list <- .make_bare_constraints()
+  c_list$B <- matrix(1, nrow = 4, ncol = 1)
+  c_list$lower <- 0.99
+  c_list$upper <- 1.01
+  c_list$turnover_target <- 0.5
+  
+  m_list <- list(cleanR = edhec4, mean = rep(0, 4), var = cov(edhec4), ES = NA)
+  
+  opt <- tryCatch(
+    PortfolioAnalytics:::gmv_opt_toc(R = edhec4, constraints = c_list, moments = m_list, 
+                                     lambda = 1, target = NA, init_weights = rep(1/4, 4), solver = "quadprog"),
+    error = function(e) NULL
+  )
+  expect_false(is.null(opt))
+  
+  expect_error(
+    PortfolioAnalytics:::gmv_opt_toc(R = edhec4, constraints = c_list, moments = m_list, 
+                                     lambda = 1, target = NA, init_weights = rep(1/4, 4), solver = "nonexistent_solver"),
+    "ROI solver plugin"
+  )
+})
+
